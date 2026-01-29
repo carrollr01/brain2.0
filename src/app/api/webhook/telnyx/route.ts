@@ -12,10 +12,14 @@ const CONVERSATION_TIMEOUT_MINUTES = 30;
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as TelnyxWebhookBody;
+    console.log('Telnyx webhook received:', JSON.stringify(body, null, 2));
+
     const payload = parseTelnyxPayload(body);
+    console.log('Parsed payload:', JSON.stringify(payload, null, 2));
 
     // Only process inbound messages
     if (payload.eventType !== 'message.received') {
+      console.log('Ignoring event type:', payload.eventType);
       return NextResponse.json({ status: 'ignored' });
     }
 
@@ -142,8 +146,14 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Webhook error:', error);
+    console.error('Error details:', error instanceof Error ? error.message : String(error));
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
+}
+
+// Handle GET requests for webhook verification (some services use this)
+export async function GET() {
+  return NextResponse.json({ status: 'webhook active' });
 }
 
 async function handleDuplicateResponse(
