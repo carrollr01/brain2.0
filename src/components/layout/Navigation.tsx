@@ -15,15 +15,15 @@ export function Navigation() {
   return (
     <>
       {/* Desktop sidebar */}
-      <nav className="w-56 bg-transparent border-r border-[var(--terminal-border)] p-4 hidden lg:flex flex-col min-h-screen">
-        <div className="mb-8">
-          <h1 className="text-sm font-bold text-[var(--terminal-accent)]">
+      <nav className="w-52 bg-transparent border-r border-[var(--terminal-border)] p-3 hidden lg:flex flex-col min-h-screen">
+        <div className="mb-6">
+          <h1 className="text-xs font-semibold text-[var(--terminal-text)]">
             SECOND_BRAIN
           </h1>
-          <p className="text-xs text-[var(--terminal-muted)]">v2.0.0</p>
+          <p className="text-[10px] text-[var(--terminal-muted)]">v2.0.0</p>
         </div>
 
-        <ul className="space-y-1 flex-1">
+        <ul className="space-y-0.5 flex-1">
           {navItems.map((item) => {
             const isActive =
               pathname === item.href ||
@@ -34,36 +34,35 @@ export function Navigation() {
                 <Link
                   href={item.href}
                   className={`
-                    flex items-center gap-2 px-3 py-1.5 rounded text-xs
+                    flex items-center gap-2 px-2 py-1 rounded text-xs
                     transition-colors
                     ${
                       isActive
-                        ? 'bg-[var(--terminal-accent)] bg-opacity-10 text-[var(--terminal-accent)] border border-[var(--terminal-accent)] border-opacity-30'
-                        : 'text-[var(--terminal-text-dim)] hover:text-[var(--terminal-text)] border border-transparent'
+                        ? 'bg-white/5 text-[var(--terminal-text)]'
+                        : 'text-[var(--terminal-muted)] hover:text-[var(--terminal-text-dim)] hover:bg-white/5'
                     }
                   `}
                 >
-                  <span className="text-[var(--terminal-muted)]">
+                  <span className={isActive ? 'text-[var(--terminal-accent)]' : 'text-[var(--terminal-muted)]'}>
                     {item.icon}
                   </span>
                   {item.label}
-                  {isActive && <span className="cursor-blink ml-auto" />}
                 </Link>
               </li>
             );
           })}
         </ul>
 
-        <div className="text-xs text-[var(--terminal-muted)] pt-4 border-t border-[var(--terminal-border)]">
+        <div className="text-[10px] text-[var(--terminal-muted)] pt-3 border-t border-[var(--terminal-border)]">
           <div>SMS your Telnyx number</div>
-          <div className="mt-1">to add entries</div>
+          <div className="mt-0.5">to add entries</div>
         </div>
       </nav>
 
       {/* Mobile top nav */}
       <nav className="lg:hidden fixed top-0 left-0 right-0 bg-[var(--terminal-bg)] border-b border-[var(--terminal-border)] z-40">
-        <div className="flex items-center justify-between px-4 py-3">
-          <h1 className="text-sm font-bold text-[var(--terminal-accent)]">
+        <div className="flex items-center justify-between px-4 py-2">
+          <h1 className="text-xs font-semibold text-[var(--terminal-text)]">
             SECOND_BRAIN
           </h1>
           <div className="flex gap-4">
@@ -80,8 +79,8 @@ export function Navigation() {
                     text-xs
                     ${
                       isActive
-                        ? 'text-[var(--terminal-accent)]'
-                        : 'text-[var(--terminal-text-dim)]'
+                        ? 'text-[var(--terminal-text)]'
+                        : 'text-[var(--terminal-muted)]'
                     }
                   `}
                 >
