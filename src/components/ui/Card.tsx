@@ -3,6 +3,7 @@ interface CardProps {
   className?: string;
   hover?: boolean;
   onClick?: () => void;
+  accentColor?: string;
 }
 
 export function Card({
@@ -10,16 +11,25 @@ export function Card({
   className = '',
   hover = true,
   onClick,
+  accentColor,
 }: CardProps) {
+  const style = accentColor
+    ? {
+        backgroundColor: `color-mix(in srgb, ${accentColor} 5%, transparent)`,
+        borderColor: `color-mix(in srgb, ${accentColor} 30%, transparent)`,
+      }
+    : undefined;
+
   return (
     <div
       className={`
-        bg-[var(--terminal-surface)]
+        bg-transparent
         border border-[var(--terminal-border)]
         rounded-lg p-4
-        ${hover ? 'hover:border-[var(--terminal-text-dim)] hover:terminal-glow transition-all cursor-pointer' : ''}
+        ${hover ? 'hover:border-[var(--terminal-accent)] transition-all cursor-pointer' : ''}
         ${className}
       `}
+      style={style}
       onClick={onClick}
     >
       {children}

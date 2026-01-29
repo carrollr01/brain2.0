@@ -47,7 +47,7 @@ export function SearchBar({
 
   return (
     <div className="relative">
-      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--terminal-text-dim)]">
+      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--terminal-muted)] text-xs">
         $&gt;
       </span>
       <input
@@ -56,13 +56,12 @@ export function SearchBar({
         onChange={handleChange}
         placeholder={placeholder}
         className="
-          w-full bg-[var(--terminal-bg)]
+          w-full bg-transparent
           border border-[var(--terminal-border)]
-          rounded-lg py-2 pl-10 pr-4
-          text-[var(--terminal-text)]
+          rounded py-1.5 pl-8 pr-4
+          text-[var(--terminal-text)] text-xs
           placeholder:text-[var(--terminal-muted)]
-          focus:outline-none focus:border-[var(--terminal-text-dim)]
-          focus:terminal-glow
+          focus:outline-none focus:border-[var(--terminal-accent)]
           font-mono
         "
       />

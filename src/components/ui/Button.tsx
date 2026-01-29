@@ -17,17 +17,17 @@ export function Button({
 
   const variantClasses = {
     primary:
-      'bg-[var(--terminal-text)] text-[var(--terminal-bg)] hover:terminal-glow',
+      'bg-transparent border border-[var(--terminal-accent)] text-[var(--terminal-accent)] hover:bg-[var(--terminal-accent)] hover:bg-opacity-10',
     secondary:
-      'bg-transparent border border-[var(--terminal-text-dim)] text-[var(--terminal-text-dim)] hover:border-[var(--terminal-text)] hover:text-[var(--terminal-text)]',
+      'bg-transparent border border-[var(--terminal-border)] text-[var(--terminal-text-dim)] hover:border-[var(--terminal-text-dim)] hover:text-[var(--terminal-text)]',
     danger:
-      'bg-[var(--terminal-error)] text-white hover:opacity-80',
+      'bg-transparent border border-[var(--terminal-error)] text-[var(--terminal-error)] hover:bg-[var(--terminal-error)] hover:bg-opacity-10',
   };
 
   const sizeClasses = {
     sm: 'px-2 py-1 text-xs',
-    md: 'px-4 py-2 text-sm',
-    lg: 'px-6 py-3 text-base',
+    md: 'px-3 py-1.5 text-xs',
+    lg: 'px-4 py-2 text-sm',
   };
 
   return (

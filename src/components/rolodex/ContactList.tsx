@@ -26,34 +26,34 @@ export function ContactList() {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-4 flex-col sm:flex-row">
+      <div className="flex gap-3 flex-col sm:flex-row">
         <div className="flex-1">
           <SearchBar
             onSearch={setSearch}
-            placeholder="grep rolodex... (search by name or description)"
+            placeholder="grep rolodex..."
           />
         </div>
       </div>
 
       {isLoading && (
-        <div className="text-[var(--terminal-text-dim)] text-center py-8">
+        <div className="text-[var(--terminal-muted)] text-center py-8 text-xs">
           Loading<span className="cursor-blink" />
         </div>
       )}
 
       {error && (
-        <div className="text-[var(--terminal-error)] text-center py-8">
+        <div className="text-[var(--terminal-error)] text-center py-8 text-xs">
           ERROR: {error.message}
         </div>
       )}
 
       {!isLoading && contacts.length === 0 && (
-        <div className="text-[var(--terminal-muted)] text-center py-8">
+        <div className="text-[var(--terminal-muted)] text-center py-8 text-xs">
           No contacts found. Send an SMS like &quot;Sarah - macro class&quot; to add one.
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {contacts.map((contact) => (
           <ContactCard
             key={contact.id}

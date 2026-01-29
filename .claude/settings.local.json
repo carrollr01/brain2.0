@@ -11,7 +11,9 @@
       "Bash(npm run dev:*)",
       "Bash(git init:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(npx vercel:*)",
+      "mcp__11f6e31c-0c17-4f72-b29c-1cdd0503d4af__deploy_to_vercel"
     ]
   }
 }

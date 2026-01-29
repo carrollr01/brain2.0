@@ -4,13 +4,14 @@
   /* Terminal color palette */
   --terminal-bg: #0a0a0a;
   --terminal-surface: #111111;
-  --terminal-border: #1a1a1a;
-  --terminal-text: #00ff00;
-  --terminal-text-dim: #00aa00;
+  --terminal-border: #222222;
+  --terminal-text: #e0e0e0;
+  --terminal-text-dim: #999999;
   --terminal-accent: #00ffff;
+  --terminal-accent-green: #00ff00;
   --terminal-warning: #ffff00;
-  --terminal-error: #ff0000;
-  --terminal-muted: #444444;
+  --terminal-error: #ff6b6b;
+  --terminal-muted: #555555;
 
   /* Category colors */
   --cat-movie: #ff6b6b;
@@ -38,6 +39,7 @@ body {
   background-color: var(--terminal-bg);
   color: var(--terminal-text);
   font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+  font-size: 14px;
 }
 
 /* Blinking cursor effect */

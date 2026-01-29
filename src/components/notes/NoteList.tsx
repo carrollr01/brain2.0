@@ -30,7 +30,7 @@ export function NoteList() {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-4 flex-col sm:flex-row">
+      <div className="flex gap-3 flex-col sm:flex-row">
         <div className="flex-1">
           <SearchBar onSearch={setSearch} placeholder="grep notes..." />
         </div>
@@ -38,24 +38,24 @@ export function NoteList() {
       </div>
 
       {isLoading && (
-        <div className="text-[var(--terminal-text-dim)] text-center py-8">
+        <div className="text-[var(--terminal-muted)] text-center py-8 text-xs">
           Loading<span className="cursor-blink" />
         </div>
       )}
 
       {error && (
-        <div className="text-[var(--terminal-error)] text-center py-8">
+        <div className="text-[var(--terminal-error)] text-center py-8 text-xs">
           ERROR: {error.message}
         </div>
       )}
 
       {!isLoading && notes.length === 0 && (
-        <div className="text-[var(--terminal-muted)] text-center py-8">
+        <div className="text-[var(--terminal-muted)] text-center py-8 text-xs">
           No notes found. Send an SMS to add one.
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {notes.map((note) => (
           <NoteCard
             key={note.id}
