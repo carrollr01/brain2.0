@@ -45,7 +45,7 @@ export function NoteCard({ note, onClick }: NoteCardProps) {
 
       {note.extracted_context && (
         <p className="text-[var(--terminal-muted)] text-xs mt-2 italic">
-          // {note.extracted_context}
+          {note.extracted_context}
         </p>
       )}
     </Card>

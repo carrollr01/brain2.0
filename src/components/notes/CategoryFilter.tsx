@@ -36,7 +36,7 @@ export function CategoryFilter({ value, onChange }: CategoryFilterProps) {
     >
       {categories.map((cat) => (
         <option key={cat} value={cat} className="bg-[var(--terminal-bg)]">
-          {cat === 'all' ? '-- ALL --' : `[${cat.toUpperCase()}]`}
+          {cat === 'all' ? 'All Categories' : cat.charAt(0).toUpperCase() + cat.slice(1)}
         </option>
       ))}
     </select>

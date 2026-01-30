@@ -30,7 +30,7 @@ export function Badge({ category, size = 'md' }: BadgeProps) {
         border: `1px solid color-mix(in srgb, ${color} 40%, transparent)`,
       }}
     >
-      [{category}]
+      {category}
     </span>
   );
 }

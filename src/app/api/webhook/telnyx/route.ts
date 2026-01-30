@@ -4,6 +4,7 @@ import { sendSMS } from '@/lib/telnyx/client';
 import { parseTelnyxPayload } from '@/lib/telnyx/webhook';
 import { createClient } from '@/lib/supabase/server';
 import { isNoteData, isRolodexData } from '@/lib/claude/types';
+import type { ClassificationItem } from '@/lib/claude/types';
 import type { TelnyxWebhookBody } from '@/lib/telnyx/types';
 import type { ConversationStateType } from '@/types/database';
 
@@ -45,104 +46,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(result);
     }
 
-    // Otherwise, classify the new message
-    const classification = await classifyMessage(message);
+    // Classify the message - may return multiple items
+    const classifiedItems = await classifyMessage(message);
+    console.log('Classified items:', JSON.stringify(classifiedItems, null, 2));
 
-    if (classification.type === 'note' && isNoteData(classification.data)) {
-      // Create a note directly
-      const { data: note, error } = await supabase
-        .from('notes')
-        .insert({
-          content: message,
-          category: classification.data.category,
-          extracted_title: classification.data.extracted_title,
-          extracted_context: classification.data.extracted_context,
-          source_phone: phoneNumber,
-        })
-        .select()
-        .single();
+    // Process each classified item
+    const results = await processClassifiedItems(supabase, phoneNumber, classifiedItems);
 
-      if (error) {
-        console.error('Error creating note:', error);
-        await sendSMS(phoneNumber, 'Sorry, there was an error saving your note. Please try again.');
-        return NextResponse.json({ status: 'error', error: error.message });
-      }
+    // Send confirmation SMS
+    await sendConfirmationSMS(phoneNumber, results);
 
-      // Send confirmation
-      const title = classification.data.extracted_title || message.substring(0, 30);
-      await sendSMS(
-        phoneNumber,
-        `Saved: "${title}${title.length >= 30 ? '...' : ''}" [${classification.data.category}]`
-      );
-
-      return NextResponse.json({ status: 'note_created', noteId: note.id });
-    }
-
-    if (classification.type === 'rolodex' && isRolodexData(classification.data)) {
-      const { name, description, suggested_tags } = classification.data;
-      const normalizedName = name.toLowerCase().trim();
-
-      // Check for existing contact with same name
-      const { data: existingContacts } = await supabase
-        .from('rolodex')
-        .select('*')
-        .eq('name_normalized', normalizedName)
-        .limit(1);
-
-      if (existingContacts && existingContacts.length > 0) {
-        // Found a duplicate - ask for clarification
-        const existing = existingContacts[0];
-        const expiresAt = new Date(Date.now() + CONVERSATION_TIMEOUT_MINUTES * 60 * 1000);
-
-        // Save conversation state
-        await supabase
-          .from('conversation_states')
-          .upsert({
-            phone_number: phoneNumber,
-            state: 'awaiting_duplicate_response' as ConversationStateType,
-            pending_action: 'create_contact',
-            pending_data: { name, description, suggested_tags },
-            related_record_id: existing.id,
-            expires_at: expiresAt.toISOString(),
-          }, {
-            onConflict: 'phone_number',
-          });
-
-        // Ask user about duplicate
-        const existingDesc = existing.description?.substring(0, 50) || 'no description';
-        await sendSMS(
-          phoneNumber,
-          `Found "${existing.name}": "${existingDesc}...". Same person? Reply YES to update, NO for new entry.`
-        );
-
-        return NextResponse.json({ status: 'awaiting_duplicate_response' });
-      }
-
-      // No duplicate - create new contact
-      const { data: contact, error } = await supabase
-        .from('rolodex')
-        .insert({
-          name,
-          name_normalized: normalizedName,
-          description,
-          tags: suggested_tags || [],
-          source_phone: phoneNumber,
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating contact:', error);
-        await sendSMS(phoneNumber, 'Sorry, there was an error saving that contact. Please try again.');
-        return NextResponse.json({ status: 'error', error: error.message });
-      }
-
-      await sendSMS(phoneNumber, `Saved contact: ${name}`);
-      return NextResponse.json({ status: 'contact_created', contactId: contact.id });
-    }
-
-    // Fallback - shouldn't reach here normally
-    return NextResponse.json({ status: 'unhandled', classification });
+    return NextResponse.json({ status: 'processed', results });
 
   } catch (error) {
     console.error('Webhook error:', error);
@@ -154,6 +68,193 @@ export async function POST(request: NextRequest) {
 // Handle GET requests for webhook verification (some services use this)
 export async function GET() {
   return NextResponse.json({ status: 'webhook active' });
+}
+
+interface ProcessResult {
+  type: 'note' | 'rolodex' | 'duplicate_pending';
+  id?: string;
+  title?: string;
+  category?: string;
+  name?: string;
+  error?: string;
+}
+
+async function processClassifiedItems(
+  supabase: ReturnType<typeof createClient>,
+  phoneNumber: string,
+  items: ClassificationItem[]
+): Promise<ProcessResult[]> {
+  const results: ProcessResult[] = [];
+
+  for (const item of items) {
+    if (item.type === 'note' && isNoteData(item.data)) {
+      const { data: note, error } = await supabase
+        .from('notes')
+        .insert({
+          content: item.original_text,
+          category: item.data.category,
+          extracted_title: item.data.extracted_title,
+          extracted_context: item.data.extracted_context,
+          source_phone: phoneNumber,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating note:', error);
+        results.push({ type: 'note', error: error.message });
+      } else {
+        results.push({
+          type: 'note',
+          id: note.id,
+          title: item.data.extracted_title || item.original_text.substring(0, 30),
+          category: item.data.category,
+        });
+      }
+    } else if (item.type === 'rolodex' && isRolodexData(item.data)) {
+      const { name, description, suggested_tags } = item.data;
+      const normalizedName = name.toLowerCase().trim();
+
+      // Check for existing contact with same name
+      const { data: existingContacts } = await supabase
+        .from('rolodex')
+        .select('*')
+        .eq('name_normalized', normalizedName)
+        .limit(1);
+
+      if (existingContacts && existingContacts.length > 0) {
+        // Found a duplicate - for multi-item messages, auto-append instead of asking
+        // (to avoid complex multi-turn conversations)
+        if (items.length > 1) {
+          const existing = existingContacts[0];
+          const updatedDescription = existing.description
+            ? `${existing.description}\n---\n${description}`
+            : description;
+
+          const updatedTags = [...new Set([
+            ...(existing.tags || []),
+            ...(suggested_tags || [])
+          ])];
+
+          await supabase
+            .from('rolodex')
+            .update({
+              description: updatedDescription,
+              tags: updatedTags,
+            })
+            .eq('id', existing.id);
+
+          results.push({
+            type: 'rolodex',
+            id: existing.id,
+            name: name,
+          });
+        } else {
+          // Single item - ask for clarification
+          const existing = existingContacts[0];
+          const expiresAt = new Date(Date.now() + CONVERSATION_TIMEOUT_MINUTES * 60 * 1000);
+
+          await supabase
+            .from('conversation_states')
+            .upsert({
+              phone_number: phoneNumber,
+              state: 'awaiting_duplicate_response' as ConversationStateType,
+              pending_action: 'create_contact',
+              pending_data: { name, description, suggested_tags },
+              related_record_id: existing.id,
+              expires_at: expiresAt.toISOString(),
+            }, {
+              onConflict: 'phone_number',
+            });
+
+          const existingDesc = existing.description?.substring(0, 50) || 'no description';
+          await sendSMS(
+            phoneNumber,
+            `Found "${existing.name}": "${existingDesc}...". Same person? Reply YES to update, NO for new entry.`
+          );
+
+          results.push({ type: 'duplicate_pending', name });
+        }
+      } else {
+        // No duplicate - create new contact
+        const { data: contact, error } = await supabase
+          .from('rolodex')
+          .insert({
+            name,
+            name_normalized: normalizedName,
+            description,
+            tags: suggested_tags || [],
+            source_phone: phoneNumber,
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error creating contact:', error);
+          results.push({ type: 'rolodex', error: error.message, name });
+        } else {
+          results.push({ type: 'rolodex', id: contact.id, name });
+        }
+      }
+    }
+  }
+
+  return results;
+}
+
+async function sendConfirmationSMS(phoneNumber: string, results: ProcessResult[]) {
+  // Don't send confirmation if we're waiting for duplicate response
+  if (results.some(r => r.type === 'duplicate_pending')) {
+    // Only send confirmation for non-pending items
+    const savedResults = results.filter(r => r.type !== 'duplicate_pending' && !r.error);
+    if (savedResults.length === 0) return;
+
+    const summaries = savedResults.map(r => {
+      if (r.type === 'note') {
+        return `"${r.title}" [${r.category}]`;
+      } else {
+        return `${r.name} (contact)`;
+      }
+    });
+
+    await sendSMS(phoneNumber, `Saved: ${summaries.join(', ')}`);
+    return;
+  }
+
+  // Build confirmation message
+  const savedResults = results.filter(r => !r.error);
+  const errorCount = results.filter(r => r.error).length;
+
+  if (savedResults.length === 0) {
+    await sendSMS(phoneNumber, 'Sorry, there was an error saving your items. Please try again.');
+    return;
+  }
+
+  if (savedResults.length === 1) {
+    const r = savedResults[0];
+    if (r.type === 'note') {
+      const title = r.title || '';
+      await sendSMS(phoneNumber, `Saved: "${title}${title.length >= 30 ? '...' : ''}" [${r.category}]`);
+    } else {
+      await sendSMS(phoneNumber, `Saved contact: ${r.name}`);
+    }
+  } else {
+    // Multiple items saved
+    const summaries = savedResults.map(r => {
+      if (r.type === 'note') {
+        const shortTitle = (r.title || '').substring(0, 20);
+        return `"${shortTitle}${shortTitle.length >= 20 ? '...' : ''}" [${r.category}]`;
+      } else {
+        return `${r.name} (contact)`;
+      }
+    });
+
+    let msg = `Saved ${savedResults.length} items:\n${summaries.join('\n')}`;
+    if (errorCount > 0) {
+      msg += `\n(${errorCount} failed)`;
+    }
+    await sendSMS(phoneNumber, msg);
+  }
 }
 
 async function handleDuplicateResponse(

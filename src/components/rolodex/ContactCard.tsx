@@ -18,7 +18,7 @@ export function ContactCard({ contact, onClick }: ContactCardProps) {
     <Card onClick={onClick} accentColor="#a29bfe">
       <div className="flex justify-between items-start mb-2">
         <h3 className="text-[var(--terminal-accent)] font-semibold text-sm">
-          @{contact.name}
+          {contact.name}
         </h3>
         <span className="text-xs text-[var(--terminal-muted)]">{timeAgo}</span>
       </div>
@@ -36,7 +36,7 @@ export function ContactCard({ contact, onClick }: ContactCardProps) {
               key={index}
               className="text-xs px-1.5 py-0.5 rounded bg-transparent text-[var(--terminal-muted)] border border-[var(--terminal-border)]"
             >
-              #{tag}
+              {tag}
             </span>
           ))}
         </div>

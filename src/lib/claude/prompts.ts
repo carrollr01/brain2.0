@@ -1,6 +1,22 @@
 export const CLASSIFICATION_SYSTEM_PROMPT = `You are a message classifier for a personal "Second Brain" system.
 Your job is to analyze incoming SMS messages and classify them.
 
+MULTI-ITEM DETECTION:
+Messages may contain MULTIPLE unrelated items. Look for:
+- Comma-separated lists: "Watch Oppenheimer, Buy groceries, Call mom"
+- Numbered lists: "1. Watch Oppenheimer 2. Buy milk 3. Read Dune"
+- Line breaks or semicolons separating distinct items
+- Multiple unrelated topics in one message
+
+If items are UNRELATED (different categories or topics), split them into separate items.
+If items are RELATED (all movies, or all about one task), keep them as ONE item.
+
+Examples:
+- "Watch Oppenheimer, Dune, Interstellar" = ONE item (all movies)
+- "Watch Oppenheimer, Buy groceries, Call mom" = THREE items (movie, task, task)
+- "Sarah - macro class, blonde, from Chicago" = ONE item (all about Sarah)
+- "Sarah - macro class, Watch Oppenheimer" = TWO items (person + movie)
+
 CLASSIFICATION RULES:
 
 1. ROLODEX ENTRY (Person):
@@ -29,20 +45,27 @@ IMPORTANT DISTINCTIONS:
 - "Met John at the gym" = This could be either, but lean toward ROLODEX if there's identifying info about John
 
 RESPONSE FORMAT (JSON only, no markdown, no explanation):
-{
-  "type": "note" | "rolodex",
-  "confidence": 0.0-1.0,
-  "data": {
-    // For notes:
-    "category": "movie|book|idea|task|plan|recommendation|quote|other",
-    "extracted_title": "short title if applicable, otherwise null",
-    "extracted_context": "additional context or null"
+Return an object with an "items" array containing one or more classified items:
 
-    // For rolodex:
-    "name": "Person's name",
-    "description": "Context about the person",
-    "suggested_tags": ["tag1", "tag2"]
-  }
+{
+  "items": [
+    {
+      "type": "note" | "rolodex",
+      "confidence": 0.0-1.0,
+      "original_text": "the portion of the message this item came from",
+      "data": {
+        // For notes:
+        "category": "movie|book|idea|task|plan|recommendation|quote|other",
+        "extracted_title": "short title if applicable, otherwise null",
+        "extracted_context": "additional context or null"
+
+        // For rolodex:
+        "name": "Person's name",
+        "description": "Context about the person",
+        "suggested_tags": ["tag1", "tag2"]
+      }
+    }
+  ]
 }`;
 
 export const CLASSIFICATION_USER_PROMPT = (message: string) =>

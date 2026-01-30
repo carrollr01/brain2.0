@@ -12,6 +12,18 @@ export interface RolodexClassificationData {
   suggested_tags: string[];
 }
 
+export interface ClassificationItem {
+  type: 'note' | 'rolodex';
+  confidence: number;
+  original_text: string;
+  data: NoteClassificationData | RolodexClassificationData;
+}
+
+export interface ClassificationResponse {
+  items: ClassificationItem[];
+}
+
+// Legacy single-item result (kept for backwards compatibility)
 export interface ClassificationResult {
   type: 'note' | 'rolodex';
   confidence: number;

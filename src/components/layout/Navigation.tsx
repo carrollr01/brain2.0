@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const navItems = [
-  { href: '/', label: '~/home', icon: '>' },
-  { href: '/notes', label: '~/notes', icon: '#' },
-  { href: '/rolodex', label: '~/rolodex', icon: '@' },
+  { href: '/', label: 'Home' },
+  { href: '/notes', label: 'Notes' },
+  { href: '/rolodex', label: 'Rolodex' },
 ];
 
 export function Navigation() {
@@ -18,9 +18,9 @@ export function Navigation() {
       <nav className="w-52 bg-transparent border-r border-[var(--terminal-border)] p-3 hidden lg:flex flex-col min-h-screen">
         <div className="mb-6">
           <h1 className="text-xs font-semibold text-[var(--terminal-text)]">
-            SECOND_BRAIN
+            Second Brain
           </h1>
-          <p className="text-[10px] text-[var(--terminal-muted)]">v2.0.0</p>
+          <p className="text-[10px] text-[var(--terminal-muted)]">v2.0</p>
         </div>
 
         <ul className="space-y-0.5 flex-1">
@@ -44,7 +44,7 @@ export function Navigation() {
                   `}
                 >
                   <span className={isActive ? 'text-[var(--terminal-accent)]' : 'text-[var(--terminal-muted)]'}>
-                    {item.icon}
+                    •
                   </span>
                   {item.label}
                 </Link>
@@ -63,7 +63,7 @@ export function Navigation() {
       <nav className="lg:hidden fixed top-0 left-0 right-0 bg-[var(--terminal-bg)] border-b border-[var(--terminal-border)] z-40">
         <div className="flex items-center justify-between px-4 py-2">
           <h1 className="text-xs font-semibold text-[var(--terminal-text)]">
-            SECOND_BRAIN
+            Second Brain
           </h1>
           <div className="flex gap-4">
             {navItems.map((item) => {
@@ -84,7 +84,7 @@ export function Navigation() {
                     }
                   `}
                 >
-                  {item.label.replace('~/', '')}
+                  {item.label}
                 </Link>
               );
             })}
