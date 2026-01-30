@@ -21,7 +21,12 @@
       "Bash(git push)",
       "mcp__11f6e31c-0c17-4f72-b29c-1cdd0503d4af__get_deployment",
       "mcp__11f6e31c-0c17-4f72-b29c-1cdd0503d4af__get_deployment_build_logs",
-      "Bash(vercel --prod:*)"
+      "Bash(vercel --prod:*)",
+      "Bash(vercel env ls:*)",
+      "Bash(vercel logs:*)",
+      "Bash(timeout:*)",
+      "Bash(git push:*)",
+      "Bash(npx supabase:*)"
     ]
   }
 }

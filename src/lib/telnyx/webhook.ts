@@ -4,11 +4,21 @@ export function parseTelnyxPayload(body: TelnyxWebhookBody): TelnyxWebhookPayloa
   const { data } = body;
   const { payload } = data;
 
+  // Handle both array and single object formats for 'to' field
+  let toNumber = '';
+  if (payload.to) {
+    if (Array.isArray(payload.to)) {
+      toNumber = payload.to[0]?.phone_number || '';
+    } else if (typeof payload.to === 'object') {
+      toNumber = (payload.to as { phone_number?: string }).phone_number || '';
+    }
+  }
+
   return {
     eventType: data.event_type,
-    from: payload.from.phone_number,
-    to: payload.to[0]?.phone_number || '',
-    text: payload.text,
+    from: payload.from?.phone_number || '',
+    to: toNumber,
+    text: payload.text || '',
     messageId: payload.id,
     timestamp: data.occurred_at,
   };
