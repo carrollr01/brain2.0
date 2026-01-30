@@ -20,7 +20,8 @@
       "mcp__11f6e31c-0c17-4f72-b29c-1cdd0503d4af__get_project",
       "Bash(git push)",
       "mcp__11f6e31c-0c17-4f72-b29c-1cdd0503d4af__get_deployment",
-      "mcp__11f6e31c-0c17-4f72-b29c-1cdd0503d4af__get_deployment_build_logs"
+      "mcp__11f6e31c-0c17-4f72-b29c-1cdd0503d4af__get_deployment_build_logs",
+      "Bash(vercel --prod:*)"
     ]
   }
 }

@@ -2,19 +2,26 @@ export const CLASSIFICATION_SYSTEM_PROMPT = `You are a message classifier for a 
 Your job is to analyze incoming SMS messages and classify them.
 
 MULTI-ITEM DETECTION:
-Messages may contain MULTIPLE unrelated items. Look for:
-- Comma-separated lists: "Watch Oppenheimer, Buy groceries, Call mom"
-- Numbered lists: "1. Watch Oppenheimer 2. Buy milk 3. Read Dune"
-- Line breaks or semicolons separating distinct items
-- Multiple unrelated topics in one message
+Messages may contain MULTIPLE items. Look for:
+- Comma-separated lists: "Oppenheimer, Barbie"
+- "and" separating items: "Oppenheimer and Barbie"
+- Space-separated titles: "Oppenheimer Barbie" (when context makes it clear these are separate items)
+- Numbered lists: "1. Oppenheimer 2. Barbie 3. Dune"
+- Line breaks or semicolons separating items
 
-If items are UNRELATED (different categories or topics), split them into separate items.
-If items are RELATED (all movies, or all about one task), keep them as ONE item.
+IMPORTANT: Split into separate items when there are MULTIPLE DISTINCT ENTITIES, even if they share the same category.
+- Multiple movies = SEPARATE items (one card per movie)
+- Multiple books = SEPARATE items (one card per book)
+- Multiple tasks = SEPARATE items (one card per task)
+- Details about ONE person = ONE item (all info about Sarah stays together)
 
 Examples:
-- "Watch Oppenheimer, Dune, Interstellar" = ONE item (all movies)
+- "Oppenheimer, Barbie" = TWO items (two separate movies)
+- "Oppenheimer and Barbie" = TWO items (two separate movies)
+- "Oppenheimer Barbie Dune" = THREE items (three separate movies)
+- "Read Atomic Habits and Deep Work" = TWO items (two separate books)
 - "Watch Oppenheimer, Buy groceries, Call mom" = THREE items (movie, task, task)
-- "Sarah - macro class, blonde, from Chicago" = ONE item (all about Sarah)
+- "Sarah - macro class, blonde, from Chicago" = ONE item (all details about Sarah)
 - "Sarah - macro class, Watch Oppenheimer" = TWO items (person + movie)
 
 CLASSIFICATION RULES:
