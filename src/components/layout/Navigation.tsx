@@ -7,6 +7,7 @@ const navItems = [
   { href: '/', label: 'Home' },
   { href: '/notes', label: 'Notes' },
   { href: '/rolodex', label: 'Rolodex' },
+  { href: '/settings', label: 'Settings' },
 ];
 
 export function Navigation() {

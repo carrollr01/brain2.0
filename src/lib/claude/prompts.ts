@@ -13,43 +13,54 @@ IMPORTANT: Split into separate items when there are MULTIPLE DISTINCT ENTITIES, 
 - Multiple movies = SEPARATE items (one card per movie)
 - Multiple books = SEPARATE items (one card per book)
 - Multiple tasks = SEPARATE items (one card per task)
+- Multiple calendar events = SEPARATE items
 - Details about ONE person = ONE item (all info about Sarah stays together)
 
-Examples:
-- "Oppenheimer, Barbie" = TWO items (two separate movies)
-- "Oppenheimer and Barbie" = TWO items (two separate movies)
-- "Oppenheimer Barbie Dune" = THREE items (three separate movies)
-- "Read Atomic Habits and Deep Work" = TWO items (two separate books)
-- "Watch Oppenheimer, Buy groceries, Call mom" = THREE items (movie, task, task)
-- "Sarah - macro class, blonde, from Chicago" = ONE item (all details about Sarah)
-- "Sarah - macro class, Watch Oppenheimer" = TWO items (person + movie)
+CLASSIFICATION RULES (in priority order):
 
-CLASSIFICATION RULES:
+1. CALENDAR EVENT (Highest priority - check this FIRST):
+   - MUST have BOTH a specific DATE and a specific TIME
+   - Date indicators: "tomorrow", "Friday", "next Monday", "Jan 15", "1/15", "next week Tuesday"
+   - Time indicators: "at 3pm", "10am", "at 2:30", "noon", "at 15:00"
+   - Event words help but aren't required: "meeting", "call", "appointment", "dinner", "lunch"
 
-1. ROLODEX ENTRY (Person):
+   CALENDAR examples:
+   - "Meeting with John tomorrow at 3pm" → CALENDAR (has date + time)
+   - "Dentist Friday 10am" → CALENDAR (has date + time)
+   - "Lunch with Sarah next Tuesday noon" → CALENDAR (has date + time)
+   - "Call with team Monday 2pm video call" → CALENDAR with Google Meet
+
+   NOT CALENDAR (missing specific time):
+   - "Call mom tomorrow" → NOTE (task) - no specific clock time
+   - "Meeting next week" → NOTE (task) - no specific time
+   - "Remember the meeting was great" → NOTE - past tense, not scheduling
+
+   For Google Meet: set add_google_meet=true if message contains "video call", "zoom", "meet", "video", "online meeting"
+
+2. ROLODEX ENTRY (Person):
    - Pattern: "Name - description" or "Name: description" or "Name, description"
    - The name comes FIRST, followed by context about that person
    - Examples: "Sarah - macro class", "John: met at conference", "Mike from gym, tall guy"
    - Must have a clear person name (1-3 words, capitalized) and some context about them
    - Context describes WHO they are, WHERE you met them, or identifying details
 
-2. NOTE ENTRY (Everything else):
+3. NOTE ENTRY (Everything else):
    Categories:
    - movie: Film recommendations, movies to watch, film reviews
    - book: Book recommendations, reading list items, book reviews
    - idea: Personal ideas, concepts, shower thoughts, creative thoughts
-   - task: Things to do, action items, reminders, errands
+   - task: Things to do, action items, reminders, errands (including things with dates but NO specific time)
    - plan: Future plans, goals, strategies, scheduled intentions
    - recommendation: General recommendations (restaurants, products, places, apps, etc.)
    - quote: Quotes, sayings, memorable phrases someone said
    - other: Anything that doesn't fit above
 
 IMPORTANT DISTINCTIONS:
-- "Watch Oppenheimer" = NOTE (movie) - it's a movie to watch
-- "Call mom" = NOTE (task) - it's something to do
+- "Meeting with John tomorrow at 3pm" = CALENDAR (has date AND time)
+- "Call mom tomorrow" = NOTE (task) - has date but NO specific time
+- "Watch Oppenheimer" = NOTE (movie)
 - "Great restaurant downtown" = NOTE (recommendation)
-- "Sarah - macro class" = ROLODEX - it's about a person named Sarah
-- "Met John at the gym" = This could be either, but lean toward ROLODEX if there's identifying info about John
+- "Sarah - macro class" = ROLODEX
 
 RESPONSE FORMAT (JSON only, no markdown, no explanation):
 Return an object with an "items" array containing one or more classified items:
@@ -57,7 +68,7 @@ Return an object with an "items" array containing one or more classified items:
 {
   "items": [
     {
-      "type": "note" | "rolodex",
+      "type": "note" | "rolodex" | "calendar",
       "confidence": 0.0-1.0,
       "original_text": "the portion of the message this item came from",
       "data": {
@@ -70,6 +81,15 @@ Return an object with an "items" array containing one or more classified items:
         "name": "Person's name",
         "description": "Context about the person",
         "suggested_tags": ["tag1", "tag2"]
+
+        // For calendar:
+        "title": "Event title (e.g., 'Meeting with John')",
+        "date_expression": "the date part (e.g., 'tomorrow', 'Friday', 'Jan 15')",
+        "time_expression": "the time part (e.g., '3pm', '10:30am', 'noon')",
+        "duration_minutes": 60,
+        "people": ["names of people mentioned, if any"],
+        "add_google_meet": true/false,
+        "description": "any additional context or null"
       }
     }
   ]

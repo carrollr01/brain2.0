@@ -3,7 +3,9 @@ import { classifyMessage } from '@/lib/claude/client';
 import { sendSMS } from '@/lib/telnyx/client';
 import { parseTelnyxPayload } from '@/lib/telnyx/webhook';
 import { createClient } from '@/lib/supabase/server';
-import { isNoteData, isRolodexData } from '@/lib/claude/types';
+import { isNoteData, isRolodexData, isCalendarData } from '@/lib/claude/types';
+import { createCalendarEvent } from '@/lib/google/calendar';
+import { isConnected } from '@/lib/google/oauth';
 import type { ClassificationItem } from '@/lib/claude/types';
 import type { TelnyxWebhookBody } from '@/lib/telnyx/types';
 import type { ConversationStateType } from '@/types/database';
@@ -60,8 +62,12 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Webhook error:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
     console.error('Error details:', error instanceof Error ? error.message : String(error));
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+    return NextResponse.json({
+      error: 'Internal error',
+      message: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
 }
 
@@ -71,12 +77,15 @@ export async function GET() {
 }
 
 interface ProcessResult {
-  type: 'note' | 'rolodex' | 'duplicate_pending';
+  type: 'note' | 'rolodex' | 'calendar' | 'duplicate_pending';
   id?: string;
   title?: string;
   category?: string;
   name?: string;
   error?: string;
+  synced?: boolean;
+  meetLink?: string;
+  eventTime?: string;
 }
 
 async function processClassifiedItems(
@@ -110,6 +119,116 @@ async function processClassifiedItems(
           title: item.data.extracted_title || item.original_text.substring(0, 30),
           category: item.data.category,
         });
+      }
+    } else if (item.type === 'calendar' && isCalendarData(item.data)) {
+      // Handle calendar event
+      const { title, date_expression, time_expression, duration_minutes, people, add_google_meet, description } = item.data;
+
+      // Check if Google Calendar is connected
+      const connectionStatus = await isConnected();
+
+      if (!connectionStatus.connected) {
+        // Store locally only, not synced
+        const { data: event, error } = await supabase
+          .from('calendar_events')
+          .insert({
+            title,
+            event_date: new Date().toISOString().split('T')[0], // Will be parsed properly when synced
+            event_time: '09:00', // Default time
+            description: `Date: ${date_expression}, Time: ${time_expression}${description ? '\n' + description : ''}`,
+            people: people || [],
+            has_google_meet: add_google_meet || false,
+            original_message: item.original_text,
+            source_phone: phoneNumber,
+            synced: false,
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error creating local calendar event:', error);
+          results.push({ type: 'calendar', error: error.message, title });
+        } else {
+          results.push({
+            type: 'calendar',
+            id: event.id,
+            title,
+            synced: false,
+          });
+        }
+      } else {
+        // Create on Google Calendar
+        try {
+          const googleEvent = await createCalendarEvent({
+            title,
+            dateExpression: date_expression,
+            timeExpression: time_expression,
+            durationMinutes: duration_minutes || 60,
+            people: people || [],
+            addGoogleMeet: add_google_meet || false,
+            description,
+          });
+
+          // Store locally with Google event ID
+          const { data: event, error } = await supabase
+            .from('calendar_events')
+            .insert({
+              title,
+              event_date: googleEvent.date,
+              event_time: googleEvent.time,
+              end_time: googleEvent.endTime,
+              description,
+              people: people || [],
+              has_google_meet: !!googleEvent.meetLink,
+              google_meet_link: googleEvent.meetLink || null,
+              google_event_id: googleEvent.id,
+              original_message: item.original_text,
+              source_phone: phoneNumber,
+              synced: true,
+            })
+            .select()
+            .single();
+
+          if (error) {
+            console.error('Error storing calendar event locally:', error);
+          }
+
+          results.push({
+            type: 'calendar',
+            id: event?.id || googleEvent.id,
+            title,
+            synced: true,
+            meetLink: googleEvent.meetLink,
+            eventTime: `${googleEvent.date} ${googleEvent.time}`,
+          });
+        } catch (calendarError) {
+          console.error('Error creating Google Calendar event:', calendarError);
+
+          // Fallback: store locally without sync
+          const { data: event } = await supabase
+            .from('calendar_events')
+            .insert({
+              title,
+              event_date: new Date().toISOString().split('T')[0],
+              event_time: '09:00',
+              description: `Date: ${date_expression}, Time: ${time_expression}${description ? '\n' + description : ''}`,
+              people: people || [],
+              has_google_meet: add_google_meet || false,
+              original_message: item.original_text,
+              source_phone: phoneNumber,
+              synced: false,
+            })
+            .select()
+            .single();
+
+          results.push({
+            type: 'calendar',
+            id: event?.id,
+            title,
+            synced: false,
+            error: 'Failed to sync with Google Calendar',
+          });
+        }
       }
     } else if (item.type === 'rolodex' && isRolodexData(item.data)) {
       const { name, description, suggested_tags } = item.data;
@@ -209,14 +328,7 @@ async function sendConfirmationSMS(phoneNumber: string, results: ProcessResult[]
     const savedResults = results.filter(r => r.type !== 'duplicate_pending' && !r.error);
     if (savedResults.length === 0) return;
 
-    const summaries = savedResults.map(r => {
-      if (r.type === 'note') {
-        return `"${r.title}" [${r.category}]`;
-      } else {
-        return `${r.name} (contact)`;
-      }
-    });
-
+    const summaries = savedResults.map(r => formatResultSummary(r));
     await sendSMS(phoneNumber, `Saved: ${summaries.join(', ')}`);
     return;
   }
@@ -232,28 +344,54 @@ async function sendConfirmationSMS(phoneNumber: string, results: ProcessResult[]
 
   if (savedResults.length === 1) {
     const r = savedResults[0];
-    if (r.type === 'note') {
-      const title = r.title || '';
-      await sendSMS(phoneNumber, `Saved: "${title}${title.length >= 30 ? '...' : ''}" [${r.category}]`);
-    } else {
-      await sendSMS(phoneNumber, `Saved contact: ${r.name}`);
-    }
+    const msg = formatSingleResultMessage(r);
+    await sendSMS(phoneNumber, msg);
   } else {
     // Multiple items saved
-    const summaries = savedResults.map(r => {
-      if (r.type === 'note') {
-        const shortTitle = (r.title || '').substring(0, 20);
-        return `"${shortTitle}${shortTitle.length >= 20 ? '...' : ''}" [${r.category}]`;
-      } else {
-        return `${r.name} (contact)`;
-      }
-    });
+    const summaries = savedResults.map(r => formatResultSummary(r));
 
     let msg = `Saved ${savedResults.length} items:\n${summaries.join('\n')}`;
     if (errorCount > 0) {
       msg += `\n(${errorCount} failed)`;
     }
     await sendSMS(phoneNumber, msg);
+  }
+}
+
+function formatResultSummary(r: ProcessResult): string {
+  if (r.type === 'note') {
+    const shortTitle = (r.title || '').substring(0, 20);
+    return `"${shortTitle}${shortTitle.length >= 20 ? '...' : ''}" [${r.category}]`;
+  } else if (r.type === 'calendar') {
+    if (r.synced) {
+      return `"${r.title}" (calendar)${r.meetLink ? ' +Meet' : ''}`;
+    } else {
+      return `"${r.title}" (calendar, not synced)`;
+    }
+  } else {
+    return `${r.name} (contact)`;
+  }
+}
+
+function formatSingleResultMessage(r: ProcessResult): string {
+  if (r.type === 'note') {
+    const title = r.title || '';
+    return `Saved: "${title}${title.length >= 30 ? '...' : ''}" [${r.category}]`;
+  } else if (r.type === 'calendar') {
+    if (r.synced) {
+      let msg = `Added to calendar: "${r.title}"`;
+      if (r.eventTime) {
+        msg += ` - ${r.eventTime}`;
+      }
+      if (r.meetLink) {
+        msg += `\nMeet: ${r.meetLink}`;
+      }
+      return msg;
+    } else {
+      return `Saved event: "${r.title}" (Connect Google Calendar in settings to sync)`;
+    }
+  } else {
+    return `Saved contact: ${r.name}`;
   }
 }
 

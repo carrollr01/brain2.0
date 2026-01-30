@@ -52,3 +52,33 @@ export interface ConversationState {
   created_at: string;
   updated_at: string;
 }
+
+export interface CalendarEvent {
+  id: string;
+  google_event_id: string | null;
+  title: string;
+  event_date: string;
+  event_time: string;
+  end_time: string | null;
+  description: string | null;
+  people: string[];
+  has_google_meet: boolean;
+  google_meet_link: string | null;
+  original_message: string;
+  source_phone: string | null;
+  synced: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GoogleOAuthToken {
+  id: string;
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+  expires_at: string;
+  scope: string;
+  google_email: string | null;
+  created_at: string;
+  updated_at: string;
+}

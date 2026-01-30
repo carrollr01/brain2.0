@@ -12,11 +12,26 @@ export interface RolodexClassificationData {
   suggested_tags: string[];
 }
 
+export interface CalendarClassificationData {
+  title: string;
+  date_expression: string;      // "tomorrow", "Friday", "Jan 15"
+  time_expression: string;      // "3pm", "10:30am", "noon"
+  duration_minutes: number;     // Default 60
+  people: string[];             // Extracted names
+  add_google_meet: boolean;     // If message mentions video call/zoom/meet
+  description: string | null;
+}
+
+export type ClassificationData =
+  | NoteClassificationData
+  | RolodexClassificationData
+  | CalendarClassificationData;
+
 export interface ClassificationItem {
-  type: 'note' | 'rolodex';
+  type: 'note' | 'rolodex' | 'calendar';
   confidence: number;
   original_text: string;
-  data: NoteClassificationData | RolodexClassificationData;
+  data: ClassificationData;
 }
 
 export interface ClassificationResponse {
@@ -25,15 +40,19 @@ export interface ClassificationResponse {
 
 // Legacy single-item result (kept for backwards compatibility)
 export interface ClassificationResult {
-  type: 'note' | 'rolodex';
+  type: 'note' | 'rolodex' | 'calendar';
   confidence: number;
-  data: NoteClassificationData | RolodexClassificationData;
+  data: ClassificationData;
 }
 
-export function isNoteData(data: NoteClassificationData | RolodexClassificationData): data is NoteClassificationData {
+export function isNoteData(data: ClassificationData): data is NoteClassificationData {
   return 'category' in data;
 }
 
-export function isRolodexData(data: NoteClassificationData | RolodexClassificationData): data is RolodexClassificationData {
-  return 'name' in data && 'description' in data;
+export function isRolodexData(data: ClassificationData): data is RolodexClassificationData {
+  return 'name' in data && 'description' in data && !('date_expression' in data);
+}
+
+export function isCalendarData(data: ClassificationData): data is CalendarClassificationData {
+  return 'date_expression' in data && 'time_expression' in data;
 }
