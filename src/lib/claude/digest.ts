@@ -1,9 +1,19 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { PodcastTranscript } from '@/lib/podcast/types';
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
+// Lazy initialization to ensure env vars are loaded at runtime
+let _anthropic: Anthropic | null = null;
+function getAnthropicClient(): Anthropic {
+  if (!_anthropic) {
+    // Try CLAUDE_API_KEY first (local override), then fall back to ANTHROPIC_API_KEY
+    const apiKey = process.env.CLAUDE_API_KEY || process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      throw new Error('Neither CLAUDE_API_KEY nor ANTHROPIC_API_KEY environment variable is set');
+    }
+    _anthropic = new Anthropic({ apiKey });
+  }
+  return _anthropic;
+}
 
 export interface DigestData {
   topic_of_day: string;
@@ -83,8 +93,8 @@ export async function synthesizeDigest(transcripts: PodcastTranscript[]): Promis
     };
   }
 
-  const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+  const response = await getAnthropicClient().messages.create({
+    model: 'claude-3-5-haiku-20241022',
     max_tokens: 4000,
     system: DIGEST_SYSTEM_PROMPT,
     messages: [

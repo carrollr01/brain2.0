@@ -20,16 +20,8 @@ export async function GET(request: NextRequest) {
   return generateDigest();
 }
 
-// POST for manual triggers
-export async function POST(request: NextRequest) {
-  // Check for API key or secret for manual triggers
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
-
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+// POST for manual triggers (no auth required for UI)
+export async function POST() {
   return generateDigest();
 }
 
@@ -66,13 +58,9 @@ async function generateDigest() {
       return NextResponse.json({ error: 'No active podcasts configured' }, { status: 400 });
     }
 
-    // Fetch transcripts from the last 24 hours
-    const since = new Date();
-    since.setHours(since.getHours() - 24);
+    console.log(`Checking ${podcasts.length} podcasts for new episodes...`);
 
-    console.log(`Fetching transcripts for ${podcasts.length} podcasts since ${since.toISOString()}`);
-
-    const transcripts = await fetchTranscriptsForPodcasts(podcasts, since);
+    const transcripts = await fetchTranscriptsForPodcasts(podcasts);
 
     console.log(`Found ${transcripts.length} episode transcripts`);
 

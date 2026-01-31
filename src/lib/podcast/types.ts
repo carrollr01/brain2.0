@@ -5,6 +5,7 @@ export interface RSSEpisode {
   audioUrl: string;
   duration?: number;
   guid: string;
+  transcriptUrl?: string;
 }
 
 export interface PodcastFeed {

@@ -7,7 +7,7 @@
   --terminal-border: #222222;
   --terminal-text: #e0e0e0;
   --terminal-text-dim: #999999;
-  --terminal-accent: #00ffff;
+  --terminal-accent: #a94438;
   --terminal-accent-green: #00ff00;
   --terminal-warning: #ffff00;
   --terminal-error: #ff6b6b;
@@ -59,7 +59,7 @@ body {
 }
 
 .terminal-glow-accent {
-  box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+  box-shadow: 0 0 10px rgba(169, 68, 56, 0.3);
 }
 
 /* Custom scrollbar */

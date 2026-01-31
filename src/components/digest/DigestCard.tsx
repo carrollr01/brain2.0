@@ -10,7 +10,7 @@ interface DigestCardProps {
   isExpanded?: boolean;
 }
 
-const DIGEST_ACCENT = '#14b8a6'; // Teal accent for digests
+const DIGEST_ACCENT = '#a94438'; // Burnt brick red accent for digests
 
 function formatDigestDate(dateStr: string): string {
   const date = new Date(dateStr);

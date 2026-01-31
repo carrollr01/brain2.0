@@ -109,3 +109,15 @@ export interface Digest {
   created_at: string;
   updated_at: string;
 }
+
+export interface EpisodeTranscript {
+  id: string;
+  podcast_id: string;
+  episode_guid: string;
+  episode_title: string;
+  episode_url: string | null;
+  published_at: string;
+  transcript: string;
+  transcript_source: 'groq' | 'rss' | 'manual';
+  created_at: string;
+}

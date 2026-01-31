@@ -1,6 +1,10 @@
 -- ============================================
 -- PODCASTS CONFIG TABLE
 -- ============================================
+DROP TABLE IF EXISTS episode_transcripts CASCADE;
+DROP TABLE IF EXISTS digests CASCADE;
+DROP TABLE IF EXISTS podcasts CASCADE;
+
 CREATE TABLE podcasts (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name VARCHAR(255) NOT NULL,
@@ -36,8 +40,33 @@ CREATE TABLE digests (
 CREATE INDEX idx_digests_date ON digests(date DESC);
 
 -- ============================================
+-- EPISODE TRANSCRIPTS CACHE TABLE
+-- Stores transcripts to avoid re-transcribing
+-- ============================================
+CREATE TABLE episode_transcripts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  podcast_id UUID NOT NULL REFERENCES podcasts(id) ON DELETE CASCADE,
+  episode_guid TEXT NOT NULL,
+  episode_title TEXT NOT NULL,
+  episode_url TEXT,
+  published_at TIMESTAMPTZ NOT NULL,
+  transcript TEXT NOT NULL,
+  transcript_source TEXT DEFAULT 'groq', -- 'groq', 'rss', 'manual'
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Unique constraint on podcast + episode guid
+CREATE UNIQUE INDEX idx_episode_transcripts_unique ON episode_transcripts(podcast_id, episode_guid);
+
+-- Index for finding recent episodes
+CREATE INDEX idx_episode_transcripts_published ON episode_transcripts(published_at DESC);
+
+-- ============================================
 -- TRIGGERS FOR updated_at
 -- ============================================
+DROP TRIGGER IF EXISTS update_podcasts_updated_at ON podcasts;
+DROP TRIGGER IF EXISTS update_digests_updated_at ON digests;
+
 CREATE TRIGGER update_podcasts_updated_at
   BEFORE UPDATE ON podcasts
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -51,9 +80,11 @@ CREATE TRIGGER update_digests_updated_at
 -- ============================================
 ALTER TABLE podcasts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE digests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE episode_transcripts ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Allow all podcasts operations" ON podcasts FOR ALL USING (true);
 CREATE POLICY "Allow all digests operations" ON digests FOR ALL USING (true);
+CREATE POLICY "Allow all episode_transcripts operations" ON episode_transcripts FOR ALL USING (true);
 
 -- ============================================
 -- SEED PODCASTS WITH RSS FEEDS

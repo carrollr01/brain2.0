@@ -30,9 +30,6 @@ export function DigestList() {
     try {
       const response = await fetch('/api/digests/generate', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET || ''}`,
-        },
       });
 
       if (!response.ok) {
