@@ -40,7 +40,8 @@
       "Bash(xxd:*)",
       "Bash(echo $ANTHROPIC_API_KEY)",
       "Bash(printenv:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(vercel env:*)"
     ]
   }
 }
