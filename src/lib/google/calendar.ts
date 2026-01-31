@@ -3,6 +3,48 @@ import * as chrono from 'chrono-node';
 import { getValidTokens, getAuthorizedOAuth2Client } from './oauth';
 import type { CalendarEventInput, CalendarEventResult } from './types';
 
+/**
+ * Normalize casual time/date expressions to formats chrono-node understands
+ */
+function normalizeTimeExpression(expr: string): string {
+  let normalized = expr.toLowerCase().trim();
+
+  // Time format fixes
+  // "6p" -> "6pm", "630p" -> "630pm", "6:30p" -> "6:30pm"
+  normalized = normalized.replace(/(\d)p\b/g, '$1pm');
+  normalized = normalized.replace(/(\d)a\b/g, '$1am');
+
+  // "630pm" -> "6:30pm" (add colon for 3-4 digit times)
+  normalized = normalized.replace(/\b(\d{1,2})(\d{2})(am|pm)\b/g, '$1:$2$3');
+
+  // Spelled out numbers for common times
+  const numberWords: Record<string, string> = {
+    'one': '1', 'two': '2', 'three': '3', 'four': '4', 'five': '5',
+    'six': '6', 'seven': '7', 'eight': '8', 'nine': '9', 'ten': '10',
+    'eleven': '11', 'twelve': '12', 'noon': '12pm', 'midnight': '12am'
+  };
+  for (const [word, num] of Object.entries(numberWords)) {
+    normalized = normalized.replace(new RegExp(`\\b${word}\\b`, 'g'), num);
+  }
+
+  // Date abbreviations
+  normalized = normalized.replace(/\btom\b/g, 'tomorrow');
+  normalized = normalized.replace(/\btmw\b/g, 'tomorrow');
+  normalized = normalized.replace(/\b2nite\b/g, 'tonight');
+  normalized = normalized.replace(/\btonite\b/g, 'tonight');
+
+  // Day abbreviations
+  normalized = normalized.replace(/\bmon\b/g, 'monday');
+  normalized = normalized.replace(/\btues?\b/g, 'tuesday');
+  normalized = normalized.replace(/\bwed\b/g, 'wednesday');
+  normalized = normalized.replace(/\bthurs?\b/g, 'thursday');
+  normalized = normalized.replace(/\bfri\b/g, 'friday');
+  normalized = normalized.replace(/\bsat\b/g, 'saturday');
+  normalized = normalized.replace(/\bsun\b/g, 'sunday');
+
+  return normalized;
+}
+
 export async function createCalendarEvent(
   input: CalendarEventInput
 ): Promise<CalendarEventResult> {
@@ -153,12 +195,17 @@ function parseDateTime(
     parseInt(getPart('second'))
   );
 
+  // Normalize casual expressions before parsing
+  const normalizedDate = normalizeTimeExpression(dateExpression);
+  const normalizedTime = normalizeTimeExpression(timeExpression);
+
   console.log('Server UTC:', nowUtc.toISOString());
   console.log('Eastern reference:', easternNow.toString());
-  console.log('Date expression:', dateExpression, 'Time expression:', timeExpression);
+  console.log('Original - Date:', dateExpression, 'Time:', timeExpression);
+  console.log('Normalized - Date:', normalizedDate, 'Time:', normalizedTime);
 
   // Combine date and time expressions for parsing
-  const combined = `${dateExpression} ${timeExpression}`;
+  const combined = `${normalizedDate} ${normalizedTime}`;
 
   // Parse with chrono-node using Eastern time as reference
   const parsed = chrono.parseDate(combined, easternNow, { forwardDate: true });
@@ -167,9 +214,9 @@ function parseDateTime(
 
   if (!parsed) {
     // Fallback: try parsing just the time for today
-    const timeOnly = chrono.parseDate(timeExpression, easternNow);
+    const timeOnly = chrono.parseDate(normalizedTime, easternNow);
     if (timeOnly) {
-      const dateOnly = chrono.parseDate(dateExpression, easternNow, { forwardDate: true });
+      const dateOnly = chrono.parseDate(normalizedDate, easternNow, { forwardDate: true });
       if (dateOnly) {
         const result = new Date(dateOnly);
         result.setHours(timeOnly.getHours());
@@ -177,13 +224,15 @@ function parseDateTime(
         result.setSeconds(0);
         result.setMilliseconds(0);
 
+        console.log('Fallback combined result:', result.toString());
         const endDateTime = new Date(result.getTime() + durationMinutes * 60 * 1000);
         return { startDateTime: result, endDateTime };
       }
     }
 
     // Ultimate fallback: today at the parsed time, or 9am
-    const fallbackTime = chrono.parseDate(timeExpression, easternNow) || new Date(easternNow.setHours(9, 0, 0, 0));
+    console.log('Using ultimate fallback');
+    const fallbackTime = chrono.parseDate(normalizedTime, easternNow) || new Date(easternNow.setHours(9, 0, 0, 0));
     const endDateTime = new Date(fallbackTime.getTime() + durationMinutes * 60 * 1000);
     return { startDateTime: fallbackTime, endDateTime };
   }

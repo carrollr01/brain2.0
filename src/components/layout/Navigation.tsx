@@ -7,6 +7,7 @@ const navItems = [
   { href: '/', label: 'Home' },
   { href: '/notes', label: 'Notes' },
   { href: '/rolodex', label: 'Rolodex' },
+  { href: '/digest', label: 'Digest' },
   { href: '/settings', label: 'Settings' },
 ];
 

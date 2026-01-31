@@ -82,3 +82,30 @@ export interface GoogleOAuthToken {
   created_at: string;
   updated_at: string;
 }
+
+export interface Podcast {
+  id: string;
+  name: string;
+  rss_url: string;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Digest {
+  id: string;
+  date: string;
+  topic_of_day: string | null;
+  unique_takes: string | null;
+  top_developments: string | null;
+  strong_opinions: string | null;
+  people_power: string | null;
+  contrarian_radar: string | null;
+  forward_looking: string | null;
+  actionable_intel: string | null;
+  vibe_check: string | null;
+  podcasts_included: string[];
+  episode_count: number;
+  created_at: string;
+  updated_at: string;
+}

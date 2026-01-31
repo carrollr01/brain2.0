@@ -420,7 +420,9 @@ TELNYX_API_KEY=
 TELNYX_PHONE_NUMBER=
 ANTHROPIC_API_KEY=
 DATABASE_URL=
-PODSCAN_API_KEY=
+GROQ_API_KEY=             # For Whisper transcription (free tier available)
+CRON_SECRET=              # Secret for authenticating cron jobs
+NOTIFY_PHONE_NUMBER=      # Phone number to receive digest ready SMS (optional)
 ```
 
 ---
