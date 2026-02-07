@@ -103,4 +103,5 @@ INSERT INTO podcasts (name, rss_url) VALUES
   ('a16z Podcast', 'https://feeds.simplecast.com/JGE3yC0V'),
   ('20VC', 'https://thetwentyminutevc.libsyn.com/rss'),
   ('Uncapped', 'https://feeds.megaphone.fm/PDP4191604852'),
-  ('Founders', 'https://feeds.megaphone.fm/DSLLC6297708582');
+  ('Founders', 'https://feeds.megaphone.fm/DSLLC6297708582'),
+  ('TBPN', 'https://feeds.transistor.fm/technology-brother');
