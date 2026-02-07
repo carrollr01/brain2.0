@@ -17,6 +17,33 @@ interface DigestSectionProps {
   icon?: string;
 }
 
+function renderMarkdownContent(text: string) {
+  // Split into paragraphs (double newline or single newline between bold-prefixed paragraphs)
+  const paragraphs = text.split(/\n\n+/).filter(p => p.trim());
+
+  return paragraphs.map((paragraph, i) => {
+    // Replace **bold** markers with styled spans
+    const parts = paragraph.split(/(\*\*[^*]+\*\*)/g);
+    const rendered = parts.map((part, j) => {
+      const boldMatch = part.match(/^\*\*([^*]+)\*\*$/);
+      if (boldMatch) {
+        return (
+          <span key={j} className="text-[var(--terminal-text)] font-semibold">
+            {boldMatch[1]}
+          </span>
+        );
+      }
+      return <span key={j}>{part}</span>;
+    });
+
+    return (
+      <p key={i} className="mb-3 last:mb-0">
+        {rendered}
+      </p>
+    );
+  });
+}
+
 function DigestSection({ title, content, icon }: DigestSectionProps) {
   if (!content) return null;
 
@@ -26,8 +53,8 @@ function DigestSection({ title, content, icon }: DigestSectionProps) {
         {icon && <span>{icon}</span>}
         {title}
       </h3>
-      <div className="text-[var(--terminal-text-dim)] text-xs whitespace-pre-wrap leading-relaxed">
-        {content}
+      <div className="text-[var(--terminal-text-dim)] text-xs leading-relaxed">
+        {renderMarkdownContent(content)}
       </div>
     </div>
   );
@@ -53,7 +80,7 @@ export function DigestDetail({ digest, onClose, onDelete }: DigestDetailProps) {
               {format(new Date(digest.date), 'EEEE, MMMM d, yyyy')}
             </p>
             <p className="text-[var(--terminal-muted)] text-xs mt-0.5">
-              {digest.episode_count} episodes from {digest.podcasts_included.join(', ')}
+              {digest.episode_count} episodes
             </p>
           </div>
           <div className="flex gap-2">
@@ -63,6 +90,23 @@ export function DigestDetail({ digest, onClose, onDelete }: DigestDetailProps) {
             <Button variant="secondary" size="sm" onClick={onClose}>
               Close
             </Button>
+          </div>
+        </div>
+
+        {/* Podcast sources bar */}
+        <div className="px-4 py-3 border-b border-[var(--terminal-border)] bg-[rgba(169,68,56,0.06)]">
+          <div className="text-[var(--terminal-muted)] text-xs mb-1.5 font-semibold uppercase tracking-wide">
+            Sources ({digest.podcasts_included.length} podcasts)
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {digest.podcasts_included.map((podcast) => (
+              <span
+                key={podcast}
+                className="text-[var(--terminal-text-dim)] text-xs px-2 py-0.5 rounded border border-[var(--terminal-border)] bg-[rgba(169,68,56,0.1)]"
+              >
+                {podcast}
+              </span>
+            ))}
           </div>
         </div>
 

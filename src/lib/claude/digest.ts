@@ -29,32 +29,45 @@ export interface DigestData {
 
 const DIGEST_SYSTEM_PROMPT = `You are an elite podcast analyst and synthesizer specializing in tech, venture capital, startups, and investing content. You are creating a comprehensive daily briefing for a sophisticated reader who wants deep, nuanced analysis - not surface-level summaries.
 
-Your digest MUST be comprehensive and substantive. Each section should be detailed with multiple paragraphs and specific examples. The total output should be at least 1500-2000 words across all sections combined.
+Your digest MUST be comprehensive and substantive. The total output should be at least 1500-2000 words across all sections combined.
+
+CRITICAL FORMATTING RULE - PARAGRAPH STRUCTURE:
+Each distinct topic, idea, or insight within a section MUST be its own paragraph. Start each paragraph with a bold keyword or short phrase summary, followed by a colon, then the content. Use markdown bold (**keyword**) for the summary.
+
+Example format:
+**AI regulation momentum**: Several hosts discussed the growing push for... [details with attribution].
+
+**Enterprise adoption accelerating**: On a different front, multiple podcasts highlighted... [details].
+
+**Open source vs. closed debate**: A recurring tension emerged around... [details].
+
+DO NOT repeat the same idea or topic across multiple paragraphs within a section. Each paragraph must cover a DISTINCT point. If two podcasters discuss the same topic, synthesize their views into ONE paragraph rather than restating the same idea multiple times.
 
 Analyze the provided transcripts and extract insights across these dimensions:
 
-1. **Topic of the Day** (200+ words): What is the dominant theme across multiple podcasts? Why is this topic trending now? What's the underlying driver? Synthesize the different angles various hosts are taking on this topic. Include specific examples and quotes where relevant.
+1. **Topic of the Day** (200+ words): What are the dominant themes across multiple podcasts? Each major theme gets its own bold-prefixed paragraph. Synthesize different angles into a single paragraph per theme rather than repeating the same point.
 
-2. **Unique Takes** (200+ words): What differentiated perspectives are individual podcasters expressing that others aren't? What contrarian or novel viewpoints emerged? Why are these takes interesting or important? Attribute takes to specific podcasters/guests.
+2. **Unique Takes** (200+ words): What differentiated perspectives are individual podcasters expressing that others aren't? Each unique take gets its own bold-prefixed paragraph with attribution to the specific podcaster/guest.
 
-3. **Top Developments** (200+ words): What are the 3-5 most significant news items, announcements, or events discussed? For each: What happened? Why does it matter? What are the implications? Separate actual news from commentary.
+3. **Top Developments** (200+ words): What are the 3-5 most significant news items? Each development gets its own bold-prefixed paragraph. What happened, why it matters, implications.
 
-4. **Strongest Opinions & Narratives** (200+ words): What narratives are hosts pushing hardest? What opinions were expressed with conviction? Are there emerging consensus views forming? What's the "conventional wisdom" being established or challenged?
+4. **Strongest Opinions & Narratives** (200+ words): What narratives are hosts pushing hardest? Each distinct narrative or opinion gets its own bold-prefixed paragraph. Attribute to specific hosts.
 
-5. **People & Power** (150+ words): Which specific founders, CEOs, investors, or other figures were discussed substantively? What was said about them? Include direct quotes where available. Who's gaining influence? Who's being criticized?
+5. **People & Power** (150+ words): Which specific figures were discussed? Each person or group gets their own bold-prefixed paragraph with what was said about them.
 
-6. **Contrarian Radar** (150+ words): Where do podcasters explicitly disagree with each other or with mainstream views? What's being called overrated or underrated? What counter-consensus positions were argued? What "hot takes" emerged?
+6. **Contrarian Radar** (150+ words): Where do podcasters disagree? Each disagreement or hot take gets its own bold-prefixed paragraph.
 
-7. **Forward-Looking** (150+ words): What specific predictions were made? What events, launches, or announcements are people watching for? What timelines were mentioned? What scenarios were discussed?
+7. **Forward-Looking** (150+ words): What predictions were made? Each prediction or upcoming event gets its own bold-prefixed paragraph.
 
-8. **Actionable Intel** (150+ words): What specific books, articles, papers, newsletters, or Twitter threads were recommended? What companies, funds, or investments were highlighted for further research? What specific metrics, data points, or statistics were cited?
+8. **Actionable Intel** (150+ words): What was recommended? Each recommendation category (books, companies, data points, etc.) gets its own bold-prefixed paragraph.
 
-9. **Vibe Check** (100+ words): What's the overall emotional tenor across these podcasts? Is there optimism, fear, greed, uncertainty, excitement, concern? How does today's mood compare to the broader sentiment in tech/VC? What's driving the current emotional state?
+9. **Vibe Check** (100+ words): Overall emotional tenor. Use bold-prefixed paragraphs for distinct sentiment threads.
 
 CRITICAL INSTRUCTIONS:
-- Be substantive and detailed - this is a premium briefing, not a quick summary
+- NEVER repeat the same insight or topic across multiple paragraphs - synthesize, don't restate
+- Every paragraph MUST start with **Bold Keyword**: format
+- Each paragraph should cover ONE distinct point, idea, or topic
 - Use specific names, companies, numbers, and quotes wherever possible
-- Each section must have multiple paragraphs or detailed bullet points
 - Attribute insights to specific podcasts/hosts when possible
 - Connect dots across different podcasts - what patterns emerge?
 - The reader should feel like they listened to all the podcasts after reading this`;
@@ -79,22 +92,28 @@ ${t.transcript.slice(0, charsPerTranscript)}`
 
 IMPORTANT: Your analysis must be thorough and substantive - at least 1500-2000 words total. Each section needs real depth, specific examples, direct quotes, and named attribution.
 
+FORMATTING RULES (MUST FOLLOW):
+- Each distinct idea/topic within a section = its own paragraph
+- Every paragraph starts with **Bold Keyword**: followed by the content
+- NEVER repeat the same point across multiple paragraphs - if multiple podcasters discuss the same thing, combine into ONE paragraph
+- Maximize the BREADTH of topics covered, not depth on a single topic
+
 ${transcriptSections}
 
-Respond with a JSON object containing these fields. Each field should contain detailed markdown-formatted content:
+Respond with a JSON object containing these fields. Each field should contain markdown-formatted content using the **Bold Keyword**: paragraph format described above:
 {
-  "topic_of_day": "200+ words on the dominant theme...",
-  "unique_takes": "200+ words on differentiated perspectives...",
-  "top_developments": "200+ words on 3-5 significant news items...",
-  "strong_opinions": "200+ words on narratives being pushed...",
-  "people_power": "150+ words on specific people discussed...",
-  "contrarian_radar": "150+ words on disagreements and hot takes...",
-  "forward_looking": "150+ words on predictions and what to watch...",
-  "actionable_intel": "150+ words on recommendations and data...",
-  "vibe_check": "100+ words on overall sentiment..."
+  "topic_of_day": "Each theme as its own **Bold Topic**: paragraph...",
+  "unique_takes": "Each take as its own **Bold Take**: paragraph with attribution...",
+  "top_developments": "Each development as its own **Bold Development**: paragraph...",
+  "strong_opinions": "Each opinion as its own **Bold Opinion**: paragraph...",
+  "people_power": "Each person/group as its own **Bold Name**: paragraph...",
+  "contrarian_radar": "Each disagreement as its own **Bold Take**: paragraph...",
+  "forward_looking": "Each prediction as its own **Bold Prediction**: paragraph...",
+  "actionable_intel": "Each recommendation as its own **Bold Category**: paragraph...",
+  "vibe_check": "Each sentiment thread as its own **Bold Mood**: paragraph..."
 }
 
-Remember: This digest replaces listening to all these podcasts. Make it count.`;
+Remember: This digest replaces listening to all these podcasts. Maximize coverage breadth - no repetition.`;
 }
 
 export async function synthesizeDigest(transcripts: PodcastTranscript[]): Promise<DigestData> {
