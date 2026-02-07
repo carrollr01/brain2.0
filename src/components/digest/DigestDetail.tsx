@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 
 interface DigestDetailProps {
   digest: Digest;
+  allPodcasts?: string[];
   onClose: () => void;
   onDelete: (id: string) => void;
 }
@@ -60,7 +61,7 @@ function DigestSection({ title, content, icon }: DigestSectionProps) {
   );
 }
 
-export function DigestDetail({ digest, onClose, onDelete }: DigestDetailProps) {
+export function DigestDetail({ digest, allPodcasts = [], onClose, onDelete }: DigestDetailProps) {
   const handleDelete = () => {
     if (confirm('Delete this digest? This cannot be undone.')) {
       onDelete(digest.id);
@@ -96,17 +97,41 @@ export function DigestDetail({ digest, onClose, onDelete }: DigestDetailProps) {
         {/* Podcast sources bar */}
         <div className="px-4 py-3 border-b border-[var(--terminal-border)] bg-[rgba(169,68,56,0.06)]">
           <div className="text-[var(--terminal-muted)] text-xs mb-1.5 font-semibold uppercase tracking-wide">
-            Sources ({digest.podcasts_included.length} podcasts)
+            Sources ({digest.podcasts_included.length}{allPodcasts.length > 0 ? `/${allPodcasts.length}` : ''} podcasts)
           </div>
           <div className="flex flex-wrap gap-1.5">
-            {digest.podcasts_included.map((podcast) => (
-              <span
-                key={podcast}
-                className="text-[var(--terminal-text-dim)] text-xs px-2 py-0.5 rounded border border-[var(--terminal-border)] bg-[rgba(169,68,56,0.1)]"
-              >
-                {podcast}
-              </span>
-            ))}
+            {(() => {
+              const includedSet = new Set(digest.podcasts_included);
+              // Merge allPodcasts with any included names not in the config list
+              const displayList = allPodcasts.length > 0
+                ? [...new Set([...allPodcasts, ...digest.podcasts_included])]
+                : digest.podcasts_included;
+
+              // Sort: included first, then not included
+              const sorted = [...displayList].sort((a, b) => {
+                const aInc = includedSet.has(a) ? 0 : 1;
+                const bInc = includedSet.has(b) ? 0 : 1;
+                if (aInc !== bInc) return aInc - bInc;
+                return a.localeCompare(b);
+              });
+
+              return sorted.map((podcast) => {
+                const isIncluded = includedSet.has(podcast);
+                return (
+                  <span
+                    key={podcast}
+                    className={`text-xs px-2 py-0.5 rounded border ${
+                      isIncluded
+                        ? 'text-[var(--terminal-text)] border-[rgba(169,68,56,0.5)] bg-[rgba(169,68,56,0.15)]'
+                        : 'text-[var(--terminal-muted)] border-[var(--terminal-border)] bg-transparent opacity-40'
+                    }`}
+                    title={isIncluded ? 'Included in this digest' : 'No new episode available'}
+                  >
+                    {podcast}
+                  </span>
+                );
+              });
+            })()}
           </div>
         </div>
 

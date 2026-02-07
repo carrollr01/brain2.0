@@ -14,7 +14,7 @@ export function DigestList() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
 
-  const { digests, isLoading, error, deleteDigest, refetch } = useDigests({
+  const { digests, allPodcasts, isLoading, error, deleteDigest, refetch } = useDigests({
     search,
   });
 
@@ -125,6 +125,7 @@ export function DigestList() {
       {selectedDigest && (
         <DigestDetail
           digest={selectedDigest}
+          allPodcasts={allPodcasts}
           onClose={() => setSelectedDigest(null)}
           onDelete={handleDelete}
         />

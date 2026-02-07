@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { Digest } from '@/types/database';
+import type { Digest, Podcast } from '@/types/database';
 
 interface UseDigestsOptions {
   search?: string;
@@ -11,6 +11,7 @@ interface UseDigestsOptions {
 
 interface UseDigestsResult {
   digests: Digest[];
+  allPodcasts: string[];
   isLoading: boolean;
   error: Error | null;
   refetch: () => void;
@@ -21,6 +22,7 @@ export function useDigests(options: UseDigestsOptions = {}): UseDigestsResult {
   const { search = '', limit = 30 } = options;
 
   const [digests, setDigests] = useState<Digest[]>([]);
+  const [allPodcasts, setAllPodcasts] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -30,6 +32,7 @@ export function useDigests(options: UseDigestsOptions = {}): UseDigestsResult {
 
     const supabase = createClient();
 
+    // Fetch digests and all active podcasts in parallel
     let query = supabase
       .from('digests')
       .select('*')
@@ -42,12 +45,19 @@ export function useDigests(options: UseDigestsOptions = {}): UseDigestsResult {
       );
     }
 
-    const { data, error: fetchError } = await query;
+    const [digestResult, podcastResult] = await Promise.all([
+      query,
+      supabase.from('podcasts').select('name').eq('active', true).order('name'),
+    ]);
 
-    if (fetchError) {
-      setError(new Error(fetchError.message));
+    if (digestResult.error) {
+      setError(new Error(digestResult.error.message));
     } else {
-      setDigests((data as Digest[]) || []);
+      setDigests((digestResult.data as Digest[]) || []);
+    }
+
+    if (podcastResult.data) {
+      setAllPodcasts(podcastResult.data.map((p: { name: string }) => p.name));
     }
 
     setIsLoading(false);
@@ -65,5 +75,5 @@ export function useDigests(options: UseDigestsOptions = {}): UseDigestsResult {
     }
   };
 
-  return { digests, isLoading, error, refetch: fetchDigests, deleteDigest };
+  return { digests, allPodcasts, isLoading, error, refetch: fetchDigests, deleteDigest };
 }
