@@ -1,4 +1,4 @@
-import { google } from 'googleapis';
+import { google, gmail_v1 } from 'googleapis';
 import { getValidTokens, getAuthorizedOAuth2Client, hasGmailScope } from './oauth';
 import { createClient } from '@/lib/supabase/server';
 
@@ -87,7 +87,7 @@ export async function fetchNewslettersFromGmail(): Promise<GmailMessage[]> {
 /**
  * Parse a Gmail API message object into our simplified structure.
  */
-function parseGmailMessage(messageId: string, message: { payload?: { headers?: Array<{ name: string; value: string }>; parts?: unknown[]; body?: { data?: string }; mimeType?: string } }): GmailMessage {
+function parseGmailMessage(messageId: string, message: gmail_v1.Schema$Message): GmailMessage {
   const headers = message.payload?.headers || [];
   const subject = headers.find(h => h.name === 'Subject')?.value || '(No Subject)';
   const from = headers.find(h => h.name === 'From')?.value || '';
@@ -111,17 +111,11 @@ function parseGmailMessage(messageId: string, message: { payload?: { headers?: A
   };
 }
 
-interface PayloadPart {
-  mimeType?: string;
-  body?: { data?: string };
-  parts?: PayloadPart[];
-}
-
 /**
  * Recursively extract HTML and text body parts from Gmail message payload.
  * Gmail messages can be deeply nested multipart structures.
  */
-function extractBodyParts(payload: PayloadPart | undefined): { htmlBody: string | null; textBody: string | null } {
+function extractBodyParts(payload: gmail_v1.Schema$MessagePart | null | undefined): { htmlBody: string | null; textBody: string | null } {
   let htmlBody: string | null = null;
   let textBody: string | null = null;
 
