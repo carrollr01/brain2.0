@@ -3,6 +3,7 @@
 import { useSearchParams } from 'next/navigation';
 import { Terminal } from '@/components/ui/Terminal';
 import { GoogleCalendarConnection } from '@/components/settings/GoogleCalendarConnection';
+import { NewsletterSourcesManager } from '@/components/settings/NewsletterSourcesManager';
 import { Suspense } from 'react';
 
 function SettingsContent() {
@@ -44,6 +45,7 @@ function SettingsContent() {
       <Terminal title="Integrations">
         <div className="space-y-4">
           <GoogleCalendarConnection />
+          <NewsletterSourcesManager />
         </div>
       </Terminal>
 

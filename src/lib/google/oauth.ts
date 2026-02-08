@@ -9,6 +9,7 @@ const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI!;
 const SCOPES = [
   'https://www.googleapis.com/auth/calendar.events',
   'https://www.googleapis.com/auth/userinfo.email',
+  'https://www.googleapis.com/auth/gmail.readonly',
 ];
 
 function getOAuth2Client() {
@@ -188,6 +189,10 @@ export async function disconnect(): Promise<void> {
     .from('google_oauth_tokens')
     .delete()
     .neq('id', '00000000-0000-0000-0000-000000000000');
+}
+
+export function hasGmailScope(scope: string): boolean {
+  return scope.includes('gmail.readonly');
 }
 
 export function getAuthorizedOAuth2Client(accessToken: string) {

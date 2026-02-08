@@ -121,3 +121,28 @@ export interface EpisodeTranscript {
   transcript_source: 'groq' | 'rss' | 'manual';
   created_at: string;
 }
+
+export interface NewsletterSource {
+  id: string;
+  sender_email: string;
+  sender_name: string;
+  gmail_label: string | null;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Newsletter {
+  id: string;
+  source_id: string | null;
+  gmail_message_id: string;
+  subject: string;
+  sender: string;
+  content_html: string | null;
+  content_text: string | null;
+  summary: string | null;
+  received_at: string;
+  is_read: boolean;
+  created_at: string;
+  updated_at: string;
+}

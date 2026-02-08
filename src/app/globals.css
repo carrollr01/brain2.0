@@ -95,3 +95,44 @@ body {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Newsletter rendered HTML content */
+.newsletter-content {
+  color: var(--terminal-text-dim);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.newsletter-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  margin: 8px 0;
+}
+
+.newsletter-content a {
+  color: var(--terminal-accent);
+  text-decoration: underline;
+}
+
+.newsletter-content h1,
+.newsletter-content h2,
+.newsletter-content h3 {
+  color: var(--terminal-text);
+  margin: 12px 0 4px 0;
+}
+
+.newsletter-content p {
+  margin: 8px 0;
+}
+
+.newsletter-content table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.newsletter-content td,
+.newsletter-content th {
+  padding: 4px 8px;
+  border: 1px solid var(--terminal-border);
+}
