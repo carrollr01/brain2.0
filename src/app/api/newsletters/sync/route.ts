@@ -23,11 +23,21 @@ export async function POST() {
 }
 
 async function syncNewsletters() {
-  const supabase = createClient();
-
   try {
-    // 1. Fetch new messages from Gmail
-    const messages = await fetchNewslettersFromGmail();
+    const supabase = createClient();
+
+    // 1. Verify Google connection and Gmail scope
+    let messages;
+    try {
+      messages = await fetchNewslettersFromGmail();
+    } catch (gmailError) {
+      console.error('Gmail fetch error:', gmailError);
+      const errorMessage = gmailError instanceof Error ? gmailError.message : 'Failed to fetch from Gmail';
+      return NextResponse.json(
+        { error: errorMessage },
+        { status: 500 }
+      );
+    }
 
     if (messages.length === 0) {
       return NextResponse.json({ message: 'No new newsletters found', count: 0 });
@@ -43,6 +53,8 @@ async function syncNewsletters() {
 
     // 3. Process each message: store + summarize
     let processed = 0;
+    const errors: string[] = [];
+
     for (const msg of messages) {
       // Get plain text for summarization
       const textContent = msg.textBody || (msg.htmlBody ? htmlToPlainText(msg.htmlBody) : '');
@@ -54,6 +66,7 @@ async function syncNewsletters() {
           summary = await summarizeNewsletter(msg.subject, textContent);
         } catch (err) {
           console.error(`Failed to summarize newsletter "${msg.subject}":`, err);
+          errors.push(`Summary failed for "${msg.subject}": ${err instanceof Error ? err.message : 'unknown'}`);
           // Continue without summary -- can be retried later
         }
       }
@@ -80,6 +93,7 @@ async function syncNewsletters() {
         // Skip duplicates silently (unique constraint on gmail_message_id)
         if (insertError.code === '23505') continue;
         console.error(`Failed to insert newsletter "${msg.subject}":`, insertError);
+        errors.push(`Insert failed for "${msg.subject}": ${insertError.message}`);
         continue;
       }
 
@@ -90,6 +104,7 @@ async function syncNewsletters() {
       message: `Synced ${processed} new newsletter${processed !== 1 ? 's' : ''}`,
       count: processed,
       total_found: messages.length,
+      errors: errors.length > 0 ? errors : undefined,
     });
   } catch (error) {
     console.error('Newsletter sync failed:', error);

@@ -27,6 +27,14 @@ export function NewsletterList() {
 
     try {
       const response = await fetch('/api/newsletters/sync', { method: 'POST' });
+
+      // Handle non-JSON responses (e.g., Vercel error pages)
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        throw new Error(`Server error (${response.status}): ${text.slice(0, 200)}`);
+      }
+
       const data = await response.json();
 
       if (!response.ok) {
@@ -34,6 +42,9 @@ export function NewsletterList() {
       }
 
       setSyncResult(data.message);
+      if (data.errors && data.errors.length > 0) {
+        setSyncError(`Partial errors: ${data.errors[0]}`);
+      }
       refetch();
     } catch (err) {
       setSyncError(err instanceof Error ? err.message : 'Failed to sync');

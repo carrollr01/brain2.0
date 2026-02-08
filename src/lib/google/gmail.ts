@@ -22,6 +22,9 @@ export async function fetchNewslettersFromGmail(): Promise<GmailMessage[]> {
   if (!tokens) {
     throw new Error('Google not connected. Please connect Google in Settings.');
   }
+
+  console.log('[Gmail] Token scope:', tokens.scope);
+
   if (!hasGmailScope(tokens.scope)) {
     throw new Error('Gmail access not granted. Please disconnect and reconnect Google in Settings to grant Gmail permissions.');
   }
@@ -53,6 +56,8 @@ export async function fetchNewslettersFromGmail(): Promise<GmailMessage[]> {
   const oauth2Client = getAuthorizedOAuth2Client(tokens.access_token);
   const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
 
+  console.log('[Gmail] Query:', fromQuery);
+
   const listResponse = await gmail.users.messages.list({
     userId: 'me',
     q: fromQuery,
@@ -60,9 +65,11 @@ export async function fetchNewslettersFromGmail(): Promise<GmailMessage[]> {
   });
 
   const messageRefs = listResponse.data.messages || [];
+  console.log('[Gmail] Found', messageRefs.length, 'messages,', existingIds.size, 'already fetched');
 
   // 6. Filter out already-fetched messages
   const newMessageRefs = messageRefs.filter(m => m.id && !existingIds.has(m.id));
+  console.log('[Gmail] New messages to process:', newMessageRefs.length);
 
   // 7. Fetch full message content for each new message
   const messages: GmailMessage[] = [];
