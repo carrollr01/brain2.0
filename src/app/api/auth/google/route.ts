@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUrl } from '@/lib/google/oauth';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     // Use a simple static state - the OAuth flow itself provides security
     // since only our callback URL is authorized in Google Cloud Console
@@ -14,8 +14,9 @@ export async function GET() {
     return NextResponse.redirect(authUrl);
   } catch (error) {
     console.error('OAuth initiation error:', error);
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
     return NextResponse.redirect(
-      new URL('/settings?error=oauth_init_failed', process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000')
+      new URL('/settings?error=oauth_init_failed', baseUrl)
     );
   }
 }
