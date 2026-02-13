@@ -142,11 +142,16 @@ export async function getValidTokens(): Promise<GoogleTokens | null> {
   // If token expires in less than 5 minutes, refresh it
   if (expiresAt.getTime() - now.getTime() < 5 * 60 * 1000) {
     try {
-      const newTokens = await refreshAccessToken(data.refresh_token);
+      // Timeout after 10 seconds to prevent hanging
+      const refreshPromise = refreshAccessToken(data.refresh_token);
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Token refresh timed out')), 10000)
+      );
+      const newTokens = await Promise.race([refreshPromise, timeoutPromise]);
       await storeTokens(newTokens, data.google_email || '');
       return newTokens;
     } catch {
-      // If refresh fails, return null (user needs to reconnect)
+      // If refresh fails or times out, return null (user needs to reconnect)
       return null;
     }
   }
@@ -165,7 +170,7 @@ export async function isConnected(): Promise<{ connected: boolean; email?: strin
 
   const { data, error } = await supabase
     .from('google_oauth_tokens')
-    .select('google_email, expires_at')
+    .select('google_email, expires_at, refresh_token')
     .limit(1)
     .single();
 
@@ -173,11 +178,11 @@ export async function isConnected(): Promise<{ connected: boolean; email?: strin
     return { connected: false };
   }
 
-  // Check if we can get valid tokens (will refresh if needed)
-  const tokens = await getValidTokens();
-
+  // If we have a refresh token, consider it connected.
+  // Don't attempt token refresh here — it can hang and block the status endpoint.
+  // Token refresh will happen lazily when tokens are actually needed.
   return {
-    connected: tokens !== null,
+    connected: !!data.refresh_token,
     email: data.google_email || undefined,
   };
 }

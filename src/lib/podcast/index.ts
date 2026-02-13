@@ -7,10 +7,12 @@ export * from './types';
 export * from './rss';
 export * from './assemblyai';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 interface Podcast {
   id: string;
@@ -25,7 +27,7 @@ async function cacheTranscript(
   transcript: string,
   source: 'assemblyai' | 'rss'
 ): Promise<void> {
-  const { error } = await supabase.from('episode_transcripts').upsert(
+  const { error } = await getSupabase().from('episode_transcripts').upsert(
     {
       podcast_id: podcastId,
       episode_guid: episode.guid,
@@ -48,7 +50,7 @@ async function getCachedTranscript(
   podcastId: string,
   episodeGuid: string
 ): Promise<string | null> {
-  const { data } = await supabase
+  const { data } = await getSupabase()
     .from('episode_transcripts')
     .select('transcript')
     .eq('podcast_id', podcastId)
