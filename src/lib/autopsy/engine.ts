@@ -23,11 +23,11 @@ const FETCH_URL_TOOL = {
   },
 };
 
-async function fetchUrl(url: string): Promise<string> {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20000);
+async function doFetch(url: string): Promise<{ html: string; finalUrl: string } | string> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20000);
 
+  try {
     const response = await fetch(url, {
       signal: controller.signal,
       headers: {
@@ -40,7 +40,20 @@ async function fetchUrl(url: string): Promise<string> {
 
     clearTimeout(timeout);
 
+    const html = await response.text();
+
+    // Even on non-200 status, check if there's a meta redirect we can follow
     if (!response.ok) {
+      const metaRedirect = html.match(/content=["'][^"']*url=['"]?([^"'\s>]+)/i);
+      if (metaRedirect && metaRedirect[1]) {
+        const redirectUrl = new URL(metaRedirect[1], url).href;
+        // Follow the meta redirect (one level deep)
+        return doFetch(redirectUrl);
+      }
+      // If substantial HTML content despite error status, try to extract anyway
+      if (html.length > 1000) {
+        return { html, finalUrl: response.url || url };
+      }
       return `[FETCH FAILED] HTTP ${response.status} ${response.statusText} for ${url}. Search for an alternative URL and try again.`;
     }
 
@@ -49,8 +62,25 @@ async function fetchUrl(url: string): Promise<string> {
       return `[FETCH FAILED] Non-HTML content (${contentType}). Search for an alternative URL.`;
     }
 
-    const html = await response.text();
-    const extracted = extractReadableText(html);
+    return { html, finalUrl: response.url || url };
+  } catch (error) {
+    clearTimeout(timeout);
+    if (error instanceof Error && error.name === 'AbortError') {
+      return `[FETCH FAILED] Timeout after 20s for ${url}. Try a different URL.`;
+    }
+    return `[FETCH FAILED] ${error instanceof Error ? error.message : 'Unknown error'} for ${url}. Try a different URL.`;
+  }
+}
+
+async function fetchUrl(url: string): Promise<string> {
+  try {
+    const result = await doFetch(url);
+
+    if (typeof result === 'string') {
+      return result; // Error message
+    }
+
+    const extracted = extractReadableText(result.html);
 
     if (extracted.length < 50) {
       return `[FETCH FAILED] Page at ${url} returned almost no readable text (likely JavaScript-only rendering). Search for an alternative page or a cached/article version.`;
@@ -58,9 +88,6 @@ async function fetchUrl(url: string): Promise<string> {
 
     return extracted;
   } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      return `[FETCH FAILED] Timeout after 20s for ${url}. Try a different URL.`;
-    }
     return `[FETCH FAILED] ${error instanceof Error ? error.message : 'Unknown error'} for ${url}. Try a different URL.`;
   }
 }
