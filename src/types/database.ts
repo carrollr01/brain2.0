@@ -33,13 +33,15 @@ export interface Contact {
 export type ConversationStateType =
   | 'idle'
   | 'awaiting_duplicate_response'
-  | 'awaiting_confirmation';
+  | 'awaiting_confirmation'
+  | 'awaiting_task_schedule';
 
 export type PendingAction =
   | 'create_note'
   | 'create_contact'
   | 'update_contact'
-  | 'merge_contact';
+  | 'merge_contact'
+  | 'schedule_task';
 
 export interface ConversationState {
   id: string;
@@ -143,6 +145,30 @@ export interface Newsletter {
   summary: string | null;
   received_at: string;
   is_read: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AutopsyReport {
+  id: string;
+  company_name: string;
+  report_content: string | null;
+  source_checklist: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+  status: 'running' | 'complete' | 'failed';
+  error_message: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AutopsyAnnotation {
+  id: string;
+  report_id: string;
+  highlighted_text: string;
+  start_offset: number;
+  end_offset: number;
+  note: string | null;
+  color: string;
   created_at: string;
   updated_at: string;
 }
