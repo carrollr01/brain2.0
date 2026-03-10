@@ -1,5 +1,14 @@
 -- Market Autopsy tables for AI-powered company research reports
 
+-- Ensure the updated_at trigger function exists
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Reports table
 CREATE TABLE autopsy_reports (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
