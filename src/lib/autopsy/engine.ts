@@ -99,16 +99,17 @@ export async function runAutopsy(
     ];
 
     let iteration = 0;
-    const MAX_ITERATIONS = 100; // High cap for thorough research
+    const MAX_ITERATIONS = 100;
 
     while (iteration < MAX_ITERATIONS) {
       iteration++;
 
       onEvent({ type: 'status', message: `Research iteration ${iteration}...` });
 
-      const response = await anthropic.messages.create({
+      // Use streaming to prevent SDK timeout on long-running web searches
+      const stream = anthropic.messages.stream({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 32000, // Large budget for thorough research + report
+        max_tokens: 32000,
         system: AUTOPSY_SYSTEM_PROMPT,
         tools: [
           { type: 'web_search_20250305', name: 'web_search', max_uses: 50 },
@@ -117,15 +118,21 @@ export async function runAutopsy(
         messages,
       });
 
-      // Process ALL content blocks in the response
+      // Stream text chunks to client in real-time
+      stream.on('text', (textDelta) => {
+        fullReportText += textDelta;
+        onEvent({ type: 'report_chunk', content: textDelta });
+      });
+
+      // Wait for the complete response
+      const response = await stream.finalMessage();
+
+      // Process content blocks for tools (text already handled via streaming)
       const toolResults: Anthropic.ToolResultBlockParam[] = [];
       let hasCustomToolUse = false;
 
       for (const block of response.content) {
-        if (block.type === 'text') {
-          fullReportText += block.text;
-          onEvent({ type: 'report_chunk', content: block.text });
-        } else if (block.type === 'tool_use' && block.name === 'fetch_url') {
+        if (block.type === 'tool_use' && block.name === 'fetch_url') {
           // Custom tool — we must execute and return result
           hasCustomToolUse = true;
           const input = block.input as { url: string; reason?: string };
@@ -159,7 +166,7 @@ export async function runAutopsy(
           const input = block.input as { query?: string };
           const query = input.query || 'web search';
           onEvent({ type: 'tool_call', tool: 'web_search', input: query });
-          onEvent({ type: 'status', message: `Searching: ${query}` });
+          onEvent({ type: 'status', message: `Searched: ${query}` });
         }
         // web_search_tool_result blocks are auto-included — no action needed
       }

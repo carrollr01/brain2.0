@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { AnnotationLayer } from '@/components/autopsy/AnnotationLayer';
 import { SourceChecklist } from '@/components/autopsy/SourceChecklist';
 import { RunningOverlay } from '@/components/autopsy/RunningOverlay';
+import { ReportChat } from '@/components/autopsy/ReportChat';
 import type { AutopsyReport } from '@/types/database';
 import type { AutopsySource } from '@/lib/autopsy/types';
 
@@ -85,71 +86,82 @@ export default function AutopsyReportPage() {
   const sources = (report.source_checklist as { sources?: AutopsySource[] })?.sources || [];
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <Link href="/autopsy" className="text-[10px] text-[var(--terminal-muted)] hover:text-[var(--terminal-text-dim)]">
-            &larr; Back to Autopsy
-          </Link>
-          <h1 className="text-lg font-bold text-[var(--terminal-text)] mt-1">
-            {report.company_name}
-          </h1>
-          <div className="flex items-center gap-3 mt-1 text-[10px] text-[var(--terminal-muted)]">
-            <span>{format(new Date(report.created_at), 'MMM d, yyyy')}</span>
-            <span>{formatDistanceToNow(new Date(report.created_at), { addSuffix: true })}</span>
-            <span
-              className="font-mono"
-              style={{
-                color: report.status === 'complete'
-                  ? 'var(--terminal-accent-green, #22c55e)'
-                  : report.status === 'failed'
-                    ? 'var(--terminal-error)'
-                    : 'var(--terminal-warning)',
-              }}
-            >
-              {report.status.toUpperCase()}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Running state */}
-      {report.status === 'running' && (
-        <RunningOverlay />
-      )}
-
-      {/* Failed state */}
-      {report.status === 'failed' && (
-        <div className="border border-[var(--terminal-error)]/30 rounded p-3">
-          <p className="text-xs text-[var(--terminal-error)]">
-            Autopsy failed: {report.error_message || 'Unknown error'}
-          </p>
-        </div>
-      )}
-
-      {/* Report content */}
-      {report.status === 'complete' && report.report_content && (
-        <div className="flex gap-4">
-          {/* Main report */}
-          <div className="flex-1 min-w-0">
-            <div className="border border-[var(--terminal-border)] rounded p-4">
-              <AnnotationLayer
-                reportId={report.id}
-                markdownContent={report.report_content}
-              />
+    <div className="flex flex-col" style={{ height: 'calc(100vh - 60px)' }}>
+      {/* Scrollable report content */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {/* Header */}
+        <div className="flex items-start justify-between">
+          <div>
+            <Link href="/autopsy" className="text-[10px] text-[var(--terminal-muted)] hover:text-[var(--terminal-text-dim)]">
+              &larr; Back to Autopsy
+            </Link>
+            <h1 className="text-lg font-bold text-[var(--terminal-text)] mt-1">
+              {report.company_name}
+            </h1>
+            <div className="flex items-center gap-3 mt-1 text-[10px] text-[var(--terminal-muted)]">
+              <span>{format(new Date(report.created_at), 'MMM d, yyyy')}</span>
+              <span>{formatDistanceToNow(new Date(report.created_at), { addSuffix: true })}</span>
+              <span
+                className="font-mono"
+                style={{
+                  color: report.status === 'complete'
+                    ? 'var(--terminal-accent-green, #22c55e)'
+                    : report.status === 'failed'
+                      ? 'var(--terminal-error)'
+                      : 'var(--terminal-warning)',
+                }}
+              >
+                {report.status.toUpperCase()}
+              </span>
             </div>
           </div>
+        </div>
 
-          {/* Source sidebar */}
-          {sources.length > 0 && (
-            <div className="w-56 shrink-0 hidden lg:block">
-              <div className="border border-[var(--terminal-border)] rounded p-3 sticky top-4">
-                <SourceChecklist sources={sources} />
+        {/* Running state */}
+        {report.status === 'running' && (
+          <RunningOverlay />
+        )}
+
+        {/* Failed state */}
+        {report.status === 'failed' && (
+          <div className="border border-[var(--terminal-error)]/30 rounded p-3">
+            <p className="text-xs text-[var(--terminal-error)]">
+              Autopsy failed: {report.error_message || 'Unknown error'}
+            </p>
+          </div>
+        )}
+
+        {/* Report content */}
+        {report.status === 'complete' && report.report_content && (
+          <div className="flex gap-4">
+            {/* Main report */}
+            <div className="flex-1 min-w-0">
+              <div className="border border-[var(--terminal-border)] rounded p-4">
+                <AnnotationLayer
+                  reportId={report.id}
+                  markdownContent={report.report_content}
+                />
               </div>
             </div>
-          )}
-        </div>
+
+            {/* Source sidebar */}
+            {sources.length > 0 && (
+              <div className="w-56 shrink-0 hidden lg:block">
+                <div className="border border-[var(--terminal-border)] rounded p-3 sticky top-4">
+                  <SourceChecklist sources={sources} />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Chat bar pinned to bottom — only show for completed reports */}
+      {report.status === 'complete' && report.report_content && (
+        <ReportChat
+          reportContent={report.report_content}
+          companyName={report.company_name}
+        />
       )}
     </div>
   );
