@@ -29,7 +29,8 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (insertError || !report) {
-      return new Response(JSON.stringify({ error: 'Failed to create report record' }), {
+      console.error('Supabase insert error:', insertError);
+      return new Response(JSON.stringify({ error: `Failed to create report record: ${insertError?.message || 'unknown error'}` }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
       });
