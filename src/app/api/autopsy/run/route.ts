@@ -7,6 +7,29 @@ export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
   try {
+    // Validate env vars
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      console.error('NEXT_PUBLIC_SUPABASE_URL is not set');
+      return new Response(JSON.stringify({ error: 'Server config error: missing SUPABASE_URL' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('SUPABASE_SERVICE_ROLE_KEY is not set');
+      return new Response(JSON.stringify({ error: 'Server config error: missing SERVICE_ROLE_KEY' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    if (!process.env.ANTHROPIC_API_KEY) {
+      console.error('ANTHROPIC_API_KEY is not set');
+      return new Response(JSON.stringify({ error: 'Server config error: missing ANTHROPIC_API_KEY' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     const { company_name, context } = await request.json();
 
     if (!company_name || typeof company_name !== 'string') {
@@ -16,9 +39,19 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const supabase = createClient();
+    let supabase;
+    try {
+      supabase = createClient();
+    } catch (clientError) {
+      console.error('Failed to create Supabase client:', clientError);
+      return new Response(JSON.stringify({ error: `Failed to create Supabase client: ${clientError instanceof Error ? clientError.message : 'unknown'}` }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
 
     // Create report record with status='running'
+    console.log('Inserting autopsy_reports record for:', company_name.trim());
     const { data: report, error: insertError } = await supabase
       .from('autopsy_reports')
       .insert({
@@ -29,12 +62,20 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (insertError || !report) {
-      console.error('Supabase insert error:', insertError);
-      return new Response(JSON.stringify({ error: `Failed to create report record: ${insertError?.message || 'unknown error'}` }), {
+      console.error('Supabase insert error:', JSON.stringify(insertError, null, 2));
+      console.error('Insert error code:', insertError?.code);
+      console.error('Insert error details:', insertError?.details);
+      console.error('Insert error hint:', insertError?.hint);
+      const errorDetail = insertError
+        ? `${insertError.message} (code: ${insertError.code}, details: ${insertError.details || 'none'}, hint: ${insertError.hint || 'none'})`
+        : 'No error returned but no data either';
+      return new Response(JSON.stringify({ error: `Failed to create report: ${errorDetail}` }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
       });
     }
+
+    console.log('Report record created:', report.id);
 
     // Set up SSE stream
     const encoder = new TextEncoder();
@@ -67,7 +108,11 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), {
+    console.error('Autopsy run route error:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    const stack = error instanceof Error ? error.stack : undefined;
+    console.error('Stack trace:', stack);
+    return new Response(JSON.stringify({ error: `Autopsy route error: ${message}` }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
