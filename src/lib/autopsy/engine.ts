@@ -6,7 +6,7 @@ import type { AutopsySSEEvent, AutopsySource } from './types';
 
 const FETCH_URL_TOOL = {
   name: 'fetch_url',
-  description: 'Fetch the full content of a web page. Use this to read landing pages, review pages, earnings transcripts, Reddit threads, and other sources. Returns the extracted text content of the page. You MUST use this tool to read pages — search snippets are not enough.',
+  description: 'Fetch the full content of a web page. Use this after every web_search to read the actual content of promising URLs. Returns extracted text. You MUST use this — search snippets are never sufficient for analysis.',
   input_schema: {
     type: 'object' as const,
     properties: {
@@ -16,7 +16,7 @@ const FETCH_URL_TOOL = {
       },
       reason: {
         type: 'string',
-        description: 'Brief reason for fetching this page (e.g., "competitor pricing page", "G2 reviews", "Reddit discussion thread", "company homepage")',
+        description: 'Brief reason for fetching (e.g., "TSMC homepage", "G2 reviews for Datadog", "Reddit thread about switching from X")',
       },
     },
     required: ['url', 'reason'],
@@ -35,40 +35,41 @@ async function fetchUrl(url: string): Promise<string> {
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
       },
+      redirect: 'follow',
     });
 
     clearTimeout(timeout);
 
     if (!response.ok) {
-      return `Failed to fetch: HTTP ${response.status} ${response.statusText}. Try a different URL or search for cached/alternative versions.`;
+      return `[FETCH FAILED] HTTP ${response.status} ${response.statusText} for ${url}. Search for an alternative URL and try again.`;
     }
 
     const contentType = response.headers.get('content-type') || '';
     if (!contentType.includes('text/html') && !contentType.includes('text/plain') && !contentType.includes('application/xhtml')) {
-      return `Non-HTML content type: ${contentType}. Try a different URL.`;
+      return `[FETCH FAILED] Non-HTML content (${contentType}). Search for an alternative URL.`;
     }
 
     const html = await response.text();
     const extracted = extractReadableText(html);
 
-    if (extracted.length < 100) {
-      return `Page returned very little readable content (${extracted.length} chars). The page may require JavaScript or login. Try a different source.`;
+    if (extracted.length < 50) {
+      return `[FETCH FAILED] Page at ${url} returned almost no readable text (likely JavaScript-only rendering). Search for an alternative page or a cached/article version.`;
     }
 
     return extracted;
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
-      return 'Failed to fetch: Request timed out after 20 seconds. Try a different URL.';
+      return `[FETCH FAILED] Timeout after 20s for ${url}. Try a different URL.`;
     }
-    return `Failed to fetch: ${error instanceof Error ? error.message : 'Unknown error'}. Try a different URL.`;
+    return `[FETCH FAILED] ${error instanceof Error ? error.message : 'Unknown error'} for ${url}. Try a different URL.`;
   }
 }
 
 function inferSourceCategory(reason: string, url: string): AutopsySource['category'] {
   const lower = (reason + ' ' + url).toLowerCase();
-  if (lower.includes('reddit') || lower.includes('ycombinator') || lower.includes('forum') || lower.includes('hacker news') || lower.includes('thread')) return 'reddit';
-  if (lower.includes('review') || lower.includes('g2') || lower.includes('capterra') || lower.includes('trustpilot') || lower.includes('trustradius')) return 'reviews';
-  if (lower.includes('earning') || lower.includes('transcript') || lower.includes('investor') || lower.includes('quarterly') || lower.includes('financial') || lower.includes('revenue') || lower.includes('sec') || lower.includes('annual report')) return 'earnings';
+  if (lower.includes('reddit') || lower.includes('ycombinator') || lower.includes('forum') || lower.includes('hacker news') || lower.includes('thread') || lower.includes('discussion')) return 'reddit';
+  if (lower.includes('review') || lower.includes('g2') || lower.includes('capterra') || lower.includes('trustpilot') || lower.includes('trustradius') || lower.includes('rating')) return 'reviews';
+  if (lower.includes('earning') || lower.includes('transcript') || lower.includes('investor') || lower.includes('quarterly') || lower.includes('financial') || lower.includes('revenue') || lower.includes('sec') || lower.includes('annual report') || lower.includes('10-k') || lower.includes('10-q')) return 'earnings';
   return 'competitor';
 }
 
@@ -81,8 +82,8 @@ export async function runAutopsy(
   const supabase = createClient();
   const sources: AutopsySource[] = [];
   let fullReportText = '';
+  const fetchedUrls = new Set<string>();
 
-  // Create Anthropic client inside the function to ensure fresh env vars
   const anthropic = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY!,
   });
@@ -91,22 +92,42 @@ export async function runAutopsy(
     onEvent({ type: 'status', message: `Initiating deep research on ${companyName}...` });
 
     const userMessage = context
-      ? `Run a deep structural analysis of ${companyName}. Additional context: ${context}. Remember: you MUST research ALL FOUR source categories (company/competitors, earnings, reviews, Reddit) before writing the report. Fetch at least 13 pages total.`
-      : `Run a deep structural analysis of ${companyName}. Remember: you MUST research ALL FOUR source categories (company/competitors, earnings, reviews, Reddit) before writing the report. Start by searching for and fetching the company's own homepage, then systematically work through each category. Fetch at least 13 pages total.`;
+      ? `Run a deep structural analysis of ${companyName}. Additional context: ${context}.
+
+IMPORTANT: Work through the research categories IN ORDER. After each web_search, immediately use fetch_url on the best URLs from the results. Do not just read search snippets — you must fetch and read full pages. Start with the company's own website.`
+      : `Run a deep structural analysis of ${companyName}.
+
+IMPORTANT: Work through the research categories IN ORDER. After each web_search, immediately use fetch_url on the best URLs from the results. Do not just read search snippets — you must fetch and read full pages. Start by searching for "${companyName} official website" and fetching their homepage.`;
 
     const messages: Anthropic.MessageParam[] = [
       { role: 'user', content: userMessage },
     ];
 
     let iteration = 0;
-    const MAX_ITERATIONS = 100;
+    const MAX_ITERATIONS = 80;
+    let iterationsWithoutNewFetch = 0;
+    const MAX_STALE_ITERATIONS = 8; // Break if 8 iterations pass with no new successful fetch
 
     while (iteration < MAX_ITERATIONS) {
       iteration++;
 
-      onEvent({ type: 'status', message: `Research iteration ${iteration}...` });
+      const fetchedCount = sources.filter(s => s.status === 'fetched').length;
+      onEvent({ type: 'status', message: `Research iteration ${iteration} (${fetchedCount} pages fetched)...` });
 
-      // Use streaming to prevent SDK timeout on long-running web searches
+      // Stuck detection: if too many iterations without progress, nudge Claude
+      if (iterationsWithoutNewFetch >= MAX_STALE_ITERATIONS) {
+        console.warn(`Autopsy stale after ${iterationsWithoutNewFetch} iterations without new fetch. Breaking.`);
+        onEvent({ type: 'status', message: 'Wrapping up research...' });
+
+        // Add a nudge message to force report writing
+        messages.push({
+          role: 'user',
+          content: `You have been researching for a while. You have fetched ${fetchedCount} pages so far. Please wrap up your research now and write the full report based on what you have gathered. If you have gaps in your source coverage, note them in the report.`,
+        });
+        iterationsWithoutNewFetch = 0; // Reset so we don't immediately break again
+      }
+
+      // Use streaming to prevent SDK timeout
       const stream = anthropic.messages.stream({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 32000,
@@ -124,36 +145,53 @@ export async function runAutopsy(
         onEvent({ type: 'report_chunk', content: textDelta });
       });
 
-      // Wait for the complete response
       const response = await stream.finalMessage();
 
-      // Process content blocks for tools (text already handled via streaming)
+      // Process content blocks for tools
       const toolResults: Anthropic.ToolResultBlockParam[] = [];
       let hasCustomToolUse = false;
+      let newFetchThisIteration = false;
 
       for (const block of response.content) {
         if (block.type === 'tool_use' && block.name === 'fetch_url') {
-          // Custom tool — we must execute and return result
           hasCustomToolUse = true;
           const input = block.input as { url: string; reason?: string };
           const reason = input.reason || 'Fetching page';
+          const url = input.url;
 
-          onEvent({ type: 'tool_call', tool: 'fetch_url', input: `${reason}: ${input.url}` });
+          onEvent({ type: 'tool_call', tool: 'fetch_url', input: `${reason}: ${url}` });
           onEvent({ type: 'status', message: `Fetching: ${reason}` });
+
+          // Check for duplicate fetch
+          if (fetchedUrls.has(url)) {
+            toolResults.push({
+              type: 'tool_result',
+              tool_use_id: block.id,
+              content: `[ALREADY FETCHED] You already fetched this URL. Use the content from before, or search for a different URL.`,
+            });
+            continue;
+          }
+          fetchedUrls.add(url);
 
           // Track source
           const source: AutopsySource = {
-            category: inferSourceCategory(reason, input.url),
+            category: inferSourceCategory(reason, url),
             name: reason,
-            url: input.url,
+            url: url,
             status: 'searching',
           };
           sources.push(source);
           onEvent({ type: 'source_checklist', data: { sources: [...sources] } });
 
           // Execute fetch
-          const result = await fetchUrl(input.url);
-          source.status = result.startsWith('Failed to fetch') || result.startsWith('Non-HTML') || result.startsWith('Page returned very little') ? 'failed' : 'fetched';
+          const result = await fetchUrl(url);
+          const failed = result.startsWith('[FETCH FAILED]');
+          source.status = failed ? 'failed' : 'fetched';
+
+          if (!failed) {
+            newFetchThisIteration = true;
+          }
+
           onEvent({ type: 'source_checklist', data: { sources: [...sources] } });
 
           toolResults.push({
@@ -162,13 +200,18 @@ export async function runAutopsy(
             content: result,
           });
         } else if (block.type === 'server_tool_use' && block.name === 'web_search') {
-          // Server-side tool — auto-executed by Anthropic, just emit status
           const input = block.input as { query?: string };
           const query = input.query || 'web search';
           onEvent({ type: 'tool_call', tool: 'web_search', input: query });
           onEvent({ type: 'status', message: `Searched: ${query}` });
         }
-        // web_search_tool_result blocks are auto-included — no action needed
+      }
+
+      // Track stale iterations
+      if (newFetchThisIteration) {
+        iterationsWithoutNewFetch = 0;
+      } else {
+        iterationsWithoutNewFetch++;
       }
 
       // Check if we're done
@@ -178,10 +221,8 @@ export async function runAutopsy(
 
       // Continue the loop if Claude needs tool results
       if (response.stop_reason === 'tool_use') {
-        // Always append the assistant's full response (includes server tool results)
         messages.push({ role: 'assistant', content: response.content });
 
-        // Only append tool results if we have custom tool results to send back
         if (hasCustomToolUse && toolResults.length > 0) {
           messages.push({ role: 'user', content: toolResults });
         }
@@ -189,7 +230,6 @@ export async function runAutopsy(
         continue;
       }
 
-      // max_tokens or other stop reason — break
       console.log(`Autopsy loop ended with stop_reason: ${response.stop_reason} at iteration ${iteration}`);
       break;
     }
@@ -199,6 +239,9 @@ export async function runAutopsy(
     }
 
     // Save the completed report
+    const fetchedCount = sources.filter(s => s.status === 'fetched').length;
+    const failedCount = sources.filter(s => s.status === 'failed').length;
+
     const { error: updateError } = await supabase
       .from('autopsy_reports')
       .update({
@@ -208,13 +251,13 @@ export async function runAutopsy(
           model: 'claude-sonnet-4-20250514',
           iterations: iteration,
           source_count: sources.length,
-          fetched_count: sources.filter(s => s.status === 'fetched').length,
-          failed_count: sources.filter(s => s.status === 'failed').length,
+          fetched_count: fetchedCount,
+          failed_count: failedCount,
           categories: {
-            competitor: sources.filter(s => s.category === 'competitor').length,
-            earnings: sources.filter(s => s.category === 'earnings').length,
-            reviews: sources.filter(s => s.category === 'reviews').length,
-            reddit: sources.filter(s => s.category === 'reddit').length,
+            competitor: sources.filter(s => s.category === 'competitor' && s.status === 'fetched').length,
+            earnings: sources.filter(s => s.category === 'earnings' && s.status === 'fetched').length,
+            reviews: sources.filter(s => s.category === 'reviews' && s.status === 'fetched').length,
+            reddit: sources.filter(s => s.category === 'reddit' && s.status === 'fetched').length,
           },
         },
         status: 'complete',
@@ -233,7 +276,6 @@ export async function runAutopsy(
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     console.error('Autopsy engine error:', error);
 
-    // Update report status to failed
     try {
       await supabase
         .from('autopsy_reports')
