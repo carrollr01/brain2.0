@@ -33,7 +33,7 @@ Step 2 — Find competitors:
 - Fetch at least 3 competitor homepages or product pages
 
 Step 3 — Find comparison content:
-- Search: "[company] comparison review 2024 2025"
+- Search: "[company] comparison review" (add the current year to the query)
 - Fetch at least 1 comparison or alternatives article
 
 MINIMUM: 5 pages fetched. Then move to Category 2.
@@ -42,13 +42,15 @@ MINIMUM: 5 pages fetched. Then move to Category 2.
 CATEGORY 2: EARNINGS & FINANCIALS (minimum 2 pages fetched)
 ═══════════════════════════════════════════════════
 
-- Search: "[company] earnings call transcript 2024"
-- Search: "[company] quarterly results revenue"
-- Search: "[company] financial performance analysis"
-- If private: search "[closest public competitor] earnings transcript"
+IMPORTANT: Always search for the MOST RECENT available earnings data. Use the current date (provided below) to determine which quarter is most recent. For example, if today is March 2026, the most recent earnings would be Q4 2025 or Q1 2026. Do NOT search for old quarters when newer data exists.
+
+- Search: "[company] latest earnings call transcript" or "[company] Q[N] [year] earnings call"
+- Search: "[company] most recent quarterly results revenue"
+- Search: "[company] financial performance analysis [current year]"
+- If private: search "[closest public competitor] latest earnings transcript"
 - Search: "[company] investor presentation annual report"
 
-Fetch at least 2 earnings/financial pages. Look for: Motley Fool, Seeking Alpha, company IR pages, SEC filings, financial news articles.
+Fetch at least 2 earnings/financial pages. Look for: Motley Fool, Seeking Alpha, company IR pages, SEC filings, financial news articles. Prioritize the most recent quarter available — if you find Q4 2025 data, use that over Q3 2024 data.
 
 If transcripts are hard to find, fetch financial analysis articles instead. MINIMUM: 2 pages. Then move to Category 3.
 
@@ -112,6 +114,8 @@ RULES:
 5. NEVER state a problem without explaining why it matters. Bad: "They have faced challenges with their 3nm process." Good: "3nm yield issues delayed Apple's M3 Pro ramp by ~one quarter — significant because Apple is TSMC's largest customer (~25% of revenue) and 3nm is the current leading-edge node."
 
 6. When you cite evidence, include enough context for the reader to assess its weight. Name the source type (earnings call, Reddit thread, G2 review), the approximate date, and the specific claim.
+
+7. ALWAYS write in analyst voice (third person). NEVER copy source material verbatim in a way that shifts POV. Earnings transcripts contain first-person executive quotes ("We forecast...", "If I look at 2025...") — you must paraphrase these into third-person analyst language or explicitly quote with attribution. Bad: "We forecast the revenue contribution from AI processors to more than double this year." Good: "TSMC management guided for AI processor revenue to more than double in 2024, reaching low-teens percent of total revenue (Q4 2024 earnings call)." The reader should never encounter an unexplained "we" or "I" — the report is YOUR analysis, not a patchwork of copied paragraphs.
 
 These rules do not mean writing more. They mean replacing vague words with specific ones. "Several competitors" → "Samsung Foundry, Intel Foundry Services, and GlobalFoundries." "Significant revenue" → "$XX billion, roughly X% of total." "Recent challenges" → "Q3 2024 yield issues at the Kumamoto fab."
 

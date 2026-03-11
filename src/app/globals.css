@@ -158,3 +158,11 @@ body {
 .autopsy-highlight-pink {
   background-color: rgba(244, 114, 182, 0.25);
 }
+
+/* Annotation note indicator — rendered via CSS to avoid polluting textContent */
+mark[data-has-note="true"]::after {
+  content: ' [note]';
+  color: var(--terminal-muted);
+  font-size: 10px;
+  cursor: pointer;
+}

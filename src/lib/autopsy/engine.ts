@@ -160,7 +160,7 @@ IMPORTANT: Work through the research categories IN ORDER. After each web_search,
       const stream = anthropic.messages.stream({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 32000,
-        system: AUTOPSY_SYSTEM_PROMPT,
+        system: `Today's date is ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. Use this to determine what counts as "recent" data and which earnings quarters to search for.\n\n${AUTOPSY_SYSTEM_PROMPT}`,
         tools: [
           { type: 'web_search_20250305', name: 'web_search', max_uses: 50 },
           FETCH_URL_TOOL,

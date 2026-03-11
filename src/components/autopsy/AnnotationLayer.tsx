@@ -184,6 +184,12 @@ export function AnnotationLayer({ reportId, markdownContent }: AnnotationLayerPr
         mark.style.borderRadius = '2px';
         mark.textContent = match;
 
+        // Use data attribute for note indicator — CSS ::after handles display
+        // This prevents [note] text from polluting textContent on re-renders
+        if (annotation.note) {
+          mark.setAttribute('data-has-note', 'true');
+        }
+
         const parent = textNode.parentNode;
         if (!parent) continue;
 
@@ -191,16 +197,6 @@ export function AnnotationLayer({ reportId, markdownContent }: AnnotationLayerPr
         parent.insertBefore(mark, textNode);
         if (after) parent.insertBefore(document.createTextNode(after), textNode);
         parent.removeChild(textNode);
-
-        // Add note indicator
-        if (annotation.note) {
-          const indicator = document.createElement('span');
-          indicator.textContent = ' [note]';
-          indicator.style.color = 'var(--terminal-muted)';
-          indicator.style.fontSize = '10px';
-          indicator.style.cursor = 'pointer';
-          mark.appendChild(indicator);
-        }
 
         break; // Only apply to first match
       }
