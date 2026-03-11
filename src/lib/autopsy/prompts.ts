@@ -12,18 +12,19 @@ You have two tools:
 
 CRITICAL RULES:
 - After EVERY web_search, immediately fetch the most relevant URLs using fetch_url. Do NOT just read search snippets.
-- If a fetch fails or returns little content, try a different URL. Do NOT give up on a category.
-- If you cannot find something after 3 search attempts, note the gap and move to the next category. Do NOT loop endlessly.
+- If a fetch fails or returns little content, try a DIFFERENT URL immediately. Do NOT retry the same URL. Do NOT give up on a category after one failure.
+- Some corporate websites block automated requests. If the company's own homepage fails to fetch, DO NOT keep retrying it. Instead, fetch the company's Wikipedia page, investor relations page, or a news/analysis article about them. Wikipedia and news sites almost always work and contain excellent company overviews.
+- If you cannot find something after 3 search attempts in a category, note the gap and MOVE ON to the next category. Do NOT loop endlessly.
 - Work through categories IN ORDER: Company/Competitors → Earnings → Reviews → Reddit/Forums.
 
 ═══════════════════════════════════════════════════
 CATEGORY 1: THE COMPANY ITSELF + COMPETITORS (minimum 5 pages fetched)
 ═══════════════════════════════════════════════════
 
-Step 1 — Find and fetch the company's homepage:
-- Search: "[company name] official website"
-- Also try fetching the URL directly if you know it (e.g., tsmc.com, datadog.com)
-- Fetch their homepage AND at least one product/about/investor page
+Step 1 — Learn about the company:
+- Search: "[company name] Wikipedia" and fetch the Wikipedia page (this ALWAYS works and is an excellent overview)
+- Search: "[company name] investor relations" or "[company name] about company" and try fetching
+- If the company's own homepage fails to load, that's fine — Wikipedia + investor/news pages are often MORE useful for analysis than marketing homepages
 
 Step 2 — Find competitors:
 - Search: "[company] competitors alternatives"

@@ -42,19 +42,21 @@ async function doFetch(url: string): Promise<{ html: string; finalUrl: string } 
 
     const html = await response.text();
 
-    // Even on non-200 status, check if there's a meta redirect we can follow
+    // Even on non-200 status, check if there's a meta redirect or usable content
     if (!response.ok) {
-      const metaRedirect = html.match(/content=["'][^"']*url=['"]?([^"'\s>]+)/i);
+      // Look for meta refresh redirect — handles patterns like:
+      // <meta http-equiv="refresh" content="0;url='https://example.com/page'" />
+      const metaRedirect = html.match(/url=['"]?\s*(https?:\/\/[^"'\s>]+)/i);
       if (metaRedirect && metaRedirect[1]) {
-        const redirectUrl = new URL(metaRedirect[1], url).href;
-        // Follow the meta redirect (one level deep)
+        const redirectUrl = metaRedirect[1].replace(/['"]$/, ''); // Strip trailing quote
         return doFetch(redirectUrl);
       }
       // If substantial HTML content despite error status, try to extract anyway
+      // (many corporate WAFs return 403 but still serve full page content)
       if (html.length > 1000) {
         return { html, finalUrl: response.url || url };
       }
-      return `[FETCH FAILED] HTTP ${response.status} ${response.statusText} for ${url}. Search for an alternative URL and try again.`;
+      return `[FETCH FAILED] HTTP ${response.status} for ${url}. This site likely blocks automated requests. Search for the company on Wikipedia, news sites, or investor pages instead — those are often MORE useful than the corporate homepage anyway.`;
     }
 
     const contentType = response.headers.get('content-type') || '';
