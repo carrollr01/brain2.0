@@ -180,6 +180,7 @@ export function AnnotationLayer({ reportId, markdownContent }: AnnotationLayerPr
         const mark = document.createElement('mark');
         mark.setAttribute('data-annotation-id', annotation.id);
         mark.style.backgroundColor = HIGHLIGHT_COLORS.find(c => c.name === annotation.color)?.bg || HIGHLIGHT_COLORS[0].bg;
+        mark.style.color = 'var(--terminal-text)';
         mark.style.cursor = 'pointer';
         mark.style.borderRadius = '2px';
         mark.textContent = match;

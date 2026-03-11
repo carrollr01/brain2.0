@@ -149,7 +149,13 @@ Based on actual competitor pages you fetched — where is the moat real vs. imag
 
 ## 4. Adversarial Stress Test
 ### Investor Teardown
-5 questions a world-class late-stage investor would ask to destroy the thesis. Answer each with specific evidence: name the source, quote the data, explain the mechanism. If evidence is thin, say exactly what's missing.
+5 questions a world-class late-stage investor would ask to destroy the thesis. For each, use this exact structure:
+
+**Q[N]: [The question]**
+
+**Answer:** A direct, substantive answer to the question in 2-4 sentences. Take a clear position — don't hedge.
+
+**Evidence:** The specific sources supporting this answer — name the source type, date, and data point. If evidence is thin, say exactly what's missing and what data would resolve it.
 
 ### Steelman the Bear Case
 For each weak answer, construct the strongest bear argument with specific scenarios (name the competitor, the technology, the timeline).
