@@ -24,7 +24,7 @@ export function NewTrackerModal({ isOpen, onClose, onCreate }: NewTrackerModalPr
     const trackId = await onCreate({ label: label.trim(), recipient: recipient.trim() || undefined, subject: subject.trim() || undefined });
 
     if (trackId) {
-      const baseUrl = window.location.origin;
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
       const snippet = `(()=>{const i=document.createElement('img');i.src='${baseUrl}/api/i/${trackId}';i.width=1;i.height=1;i.style.display='none';document.querySelector('[contenteditable="true"]').appendChild(i)})()`;
       await navigator.clipboard.writeText(snippet);
       setCopied(true);
