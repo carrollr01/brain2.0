@@ -20,12 +20,18 @@ export async function GET(
   const userAgent = request.headers.get('user-agent') || null;
   const referer = request.headers.get('referer') || null;
 
-  await supabase.from('opens').insert({
-    track_id: id,
-    ip,
-    user_agent: userAgent,
-    referer,
-  });
+  const isProxy =
+    (userAgent && userAgent.includes('GoogleImageProxy')) ||
+    (userAgent && userAgent.includes('YahooMailProxy'));
+
+  if (!isProxy) {
+    await supabase.from('opens').insert({
+      track_id: id,
+      ip,
+      user_agent: userAgent,
+      referer,
+    });
+  }
 
   return new Response(TRANSPARENT_GIF, {
     status: 200,
