@@ -34,7 +34,7 @@ export function TrackerCard({ track, onDelete, onGetOpens }: TrackerCardProps) {
   const copySnippet = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const baseUrl = window.location.origin;
-    const snippet = `document.querySelector('[contenteditable="true"]').insertAdjacentHTML('beforeend', '<img src="${baseUrl}/api/i/${track.id}" width="1" height="1" style="display:none" alt="" />')`;
+    const snippet = `(()=>{const i=document.createElement('img');i.src='${baseUrl}/api/i/${track.id}';i.width=1;i.height=1;i.style.display='none';document.querySelector('[contenteditable="true"]').appendChild(i)})()`;
     await navigator.clipboard.writeText(snippet);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
