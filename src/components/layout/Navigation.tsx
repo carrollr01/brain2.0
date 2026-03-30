@@ -11,6 +11,7 @@ const navItems = [
   { href: '/digest', label: 'Digest' },
   { href: '/newsletters', label: 'Newsletters' },
   { href: '/autopsy', label: 'Autopsy' },
+  { href: '/tracker', label: 'Tracker' },
   { href: '/settings', label: 'Settings' },
 ];
 

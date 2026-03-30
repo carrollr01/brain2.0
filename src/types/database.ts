@@ -172,3 +172,21 @@ export interface AutopsyAnnotation {
   created_at: string;
   updated_at: string;
 }
+
+export interface Track {
+  id: string;
+  label: string;
+  recipient: string | null;
+  subject: string | null;
+  created_at: string;
+  open_count?: number;
+}
+
+export interface OpenEvent {
+  id: number;
+  track_id: string;
+  opened_at: string;
+  ip: string | null;
+  user_agent: string | null;
+  referer: string | null;
+}
