@@ -25,7 +25,7 @@ export function NewTrackerModal({ isOpen, onClose, onCreate }: NewTrackerModalPr
 
     if (trackId) {
       const baseUrl = window.location.origin;
-      const snippet = `<img src="${baseUrl}/api/i/${trackId}" width="1" height="1" style="display:none" alt="" />`;
+      const snippet = `document.querySelector('[contenteditable="true"]').insertAdjacentHTML('beforeend', '<img src="${baseUrl}/api/i/${trackId}" width="1" height="1" style="display:none" alt="" />')`;
       await navigator.clipboard.writeText(snippet);
       setCopied(true);
       setTimeout(() => {
